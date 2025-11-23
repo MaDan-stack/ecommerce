@@ -1,35 +1,26 @@
 const multer = require('multer');
-const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+require('dotenv').config();
 
-// Konfigurasi penyimpanan
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Simpan di folder 'uploads'
-  },
-  filename: (req, file, cb) => {
-    // Buat nama file unik: timestamp-namasli.jpg
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
+// 1. Konfigurasi Cloudinary dengan kredensial dari .env
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Filter hanya menerima gambar
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (extname && mimetype) {
-    cb(null, true);
-  } else {
-    cb(new Error('Hanya file gambar yang diperbolehkan!'));
-  }
-};
-
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limit 5MB
-  fileFilter: fileFilter
+// 2. Siapkan Storage Engine
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'lokalstyle-products', // Nama folder di Cloudinary
+        allowed_formats: ['jpg', 'png', 'jpeg', 'webp'], // Format yang diizinkan
+        transformation: [{ width: 800, height: 800, crop: 'limit' }] // Opsional: Resize otomatis biar hemat
+    }
 });
+
+// 3. Inisialisasi Multer
+const upload = multer({ storage: storage });
 
 module.exports = upload;

@@ -8,13 +8,12 @@ router.post('/', upload.single('image'), (req, res) => {
       return res.status(400).json({ status: 'fail', message: 'Tidak ada file yang diupload' });
     }
 
-    // Buat URL lengkap untuk gambar
-    // Contoh: http://localhost:5000/uploads/172938...jpg
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    // Cloudinary otomatis menaruh URL gambar di req.file.path
+    const imageUrl = req.file.path;
 
     res.json({
       status: 'success',
-      message: 'File berhasil diupload',
+      message: 'File berhasil diupload ke Cloudinary',
       data: {
         imageUrl: imageUrl
       }
