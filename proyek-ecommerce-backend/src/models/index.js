@@ -5,6 +5,7 @@ const Variant = require('./Variant'); //
 const Order = require('./Order');
 const OrderItem = require('./OrderItem');
 const Testimonial = require('./Testimonial');
+const Review = require('./Review');
 
 // Relasi Product <-> Variant (PENTING)
 Product.hasMany(Variant, { foreignKey: 'productId', onDelete: 'CASCADE' });
@@ -26,6 +27,20 @@ OrderItem.belongsTo(Product, { foreignKey: 'productId' });
 User.hasMany(Testimonial, { foreignKey: 'userId' });
 Testimonial.belongsTo(User, { foreignKey: 'userId' });
 
+// Relasi Review
+
+// User menulis banyak Review
+User.hasMany(Review, { foreignKey: 'userId' });
+Review.belongsTo(User, { foreignKey: 'userId' });
+
+// Produk memiliki banyak Review
+Product.hasMany(Review, { foreignKey: 'productId' });
+Review.belongsTo(Product, { foreignKey: 'productId' });
+
+// Review terikat pada satu Order (Bukti Pembelian)
+Order.hasMany(Review, { foreignKey: 'orderId' });
+Review.belongsTo(Order, { foreignKey: 'orderId' });
+
 module.exports = {
     User,
     Authentication,
@@ -33,5 +48,6 @@ module.exports = {
     Variant,
     Order,
     OrderItem,
-    Testimonial
+    Testimonial,
+    Review
 };

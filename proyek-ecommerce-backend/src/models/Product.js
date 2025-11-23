@@ -20,7 +20,7 @@ const Product = db.define('products', {
         allowNull: false
     },
     img: {
-        type: DataTypes.STRING, // URL Gambar
+        type: DataTypes.STRING, // URL Gambar (Cloudinary)
         allowNull: false
     },
     rating: {
@@ -31,12 +31,18 @@ const Product = db.define('products', {
         type: DataTypes.INTEGER,
         defaultValue: 0
     }
-    // Harga dan Stok nanti bisa di tabel Variants, tapi untuk simpel kita bisa taruh sini dulu atau skip
 }, {
     freezeTableName: true,
+    // --- OPTIMASI: MENAMBAHKAN INDEX ---
     indexes: [
-        { fields: ['category'] }, // Mempercepat filter kategori
-        { fields: ['title'] }     // Mempercepat search
+        {
+            name: 'product_category_index', // Nama index (bebas)
+            fields: ['category']            // Mempercepat filter kategori
+        },
+        {
+            name: 'product_title_index',
+            fields: ['title']               // Mempercepat pencarian nama
+        }
     ]
 });
 

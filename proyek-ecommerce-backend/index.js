@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // [Wajib] Import path
+const path = require('node:path'); // [Wajib] Import path
 const db = require('./src/config/database');
 // Import semua model agar tabel dibuat
 const { User, Authentication, Product, Variant, Order, OrderItem } = require('./src/models'); 
@@ -13,11 +13,12 @@ const orderRoutes = require('./src/routes/orders');
 const uploadRoutes = require('./src/routes/upload'); // [Wajib] Import route upload
 const dashboardRoutes = require('./src/routes/dashboard');
 const testimonialRoutes = require('./src/routes/testimonials');
+const reviewRoutes = require('./src/routes/reviews');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(helmet());
+
 app.use(cors());
 app.use(express.json());
 // [Wajib] Middleware untuk melayani file statis (gambar) dari folder 'uploads'
@@ -27,12 +28,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/', (req, res) => {
     res.send('Server LokalStyle Berjalan! 🚀');
 });
-const rateLimit = require('express-rate-limit');
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 menit
-  max: 100 // maks 100 request per IP
-});
-app.use('/api', limiter);
 
 const compression = require('compression');
 app.use(compression());
@@ -44,6 +39,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes); // [Wajib] Pasang route upload
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/testimonials', testimonialRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 const startServer = async () => {
     try {
