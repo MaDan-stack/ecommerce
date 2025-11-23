@@ -33,7 +33,11 @@ const Product = db.define('products', {
     }
     // Harga dan Stok nanti bisa di tabel Variants, tapi untuk simpel kita bisa taruh sini dulu atau skip
 }, {
-    freezeTableName: true
+    freezeTableName: true,
+    indexes: [
+        { fields: ['category'] }, // Mempercepat filter kategori
+        { fields: ['title'] }     // Mempercepat search
+    ]
 });
 
 module.exports = Product;

@@ -17,6 +17,7 @@ const testimonialRoutes = require('./src/routes/testimonials');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
 // [Wajib] Middleware untuk melayani file statis (gambar) dari folder 'uploads'
@@ -26,6 +27,15 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/', (req, res) => {
     res.send('Server LokalStyle Berjalan! 🚀');
 });
+const rateLimit = require('express-rate-limit');
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 menit
+  max: 100 // maks 100 request per IP
+});
+app.use('/api', limiter);
+
+const compression = require('compression');
+app.use(compression());
 
 // Daftarkan Routes
 app.use('/api/auth', authRoutes);
