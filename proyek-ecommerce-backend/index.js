@@ -12,6 +12,7 @@ const productRoutes = require('./src/routes/products');
 const orderRoutes = require('./src/routes/orders');
 const uploadRoutes = require('./src/routes/upload'); // [Wajib] Import route upload
 const dashboardRoutes = require('./src/routes/dashboard');
+const testimonialRoutes = require('./src/routes/testimonials');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,6 +33,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes); // [Wajib] Pasang route upload
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/testimonials', testimonialRoutes);
 
 const startServer = async () => {
     try {
