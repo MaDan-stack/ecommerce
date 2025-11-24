@@ -90,6 +90,73 @@ const reviewController = {
         } catch (error) {
             res.status(500).json({ status: 'error', message: error.message });
         }
+    },
+
+    // --- ADMIN: Ambil SEMUA Review ---
+    getAllReviewsAdmin: async (req, res) => {
+        try {
+            if (req.user.role !== 'admin') {
+                return res.status(403).json({ status: 'fail', message: 'Akses ditolak' });
+            }
+
+            const reviews = await Review.findAll({
+                include: [
+                    { model: User, attributes: ['name', 'email'] },
+                    { model: Product, attributes: ['title'] }
+                ],
+                order: [['createdAt', 'DESC']]
+            });
+
+            res.json({ status: 'success', data: reviews });
+        } catch (error) {
+            res.status(500).json({ status: 'error', message: error.message });
+        }
+    },
+
+    // --- ADMIN: Hapus Review ---
+    deleteReview: async (req, res) => {
+        try {
+            if (req.user.role !== 'admin') {
+                return res.status(403).json({ status: 'fail', message: 'Akses ditolak' });
+            }
+
+            const { id } = req.params;
+            const review = await Review.findByPk(id);
+
+            if (!review) {
+                return res.status(404).json({ status: 'fail', message: 'Review tidak ditemukan' });
+            }
+
+            const productId = review.productId; // Simpan ID produk sebelum hapus
+
+            // Hapus Review
+            await review.destroy();
+
+            // --- PENTING: Hitung Ulang Rating Produk ---
+            // Karena review dihapus, rata-rata bintang produk akan berubah
+            const allReviews = await Review.findAll({ where: { productId } });
+            
+            let newAvgRating = 0;
+            if (allReviews.length > 0) {
+                const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+                newAvgRating = totalRating / allReviews.length;
+            }
+
+            await Product.update(
+                { 
+                    rating: newAvgRating,
+                    reviewCount: allReviews.length 
+                },
+                { where: { id: productId } }
+            );
+            // -------------------------------------------
+
+            res.json({ status: 'success', message: 'Review berhasil dihapus' });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ status: 'error', message: error.message });
+        }
     }
 };
 
