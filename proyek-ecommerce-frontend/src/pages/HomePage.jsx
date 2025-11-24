@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Hero from "../sections/home/Hero";
 import TopSellingProducts from "../sections/home/TopSellingProducts";
 import TopRatedProducts from "../sections/home/TopRatedProducts";
@@ -6,22 +6,38 @@ import Banner from "../sections/home/Banner";
 import Subscribe from "../sections/home/Subscribe";
 import Testimonials from "../sections/home/Testimonials";
 import AddTestimonial from "../sections/home/AddTestimonial"; 
-import { getTestimonials, addTestimonial } from "../utils/data"; 
+import { getAllTestimonials, addTestimonialAPI } from "../utils/api"; // <-- Ganti import
+import toast from 'react-hot-toast';
 
 const HomePage = () => {
-  // --- BAGIAN YANG DIPERBAIKI ---
-  // 1. Inisialisasi state dengan data yang ada, bukan array kosong.
-  const [testimonials, setTestimonials] = useState(getTestimonials());
+  const [testimonials, setTestimonials] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // 2. Ambil data testimoni saat komponen pertama kali dimuat
-  // (Tidak perlu useEffect karena data.jsx adalah sinkron)
-  
-  // 3. Buat handler untuk menambah testimoni baru
-  const handleAddTestimonial = (testimonial) => {
-    addTestimonial(testimonial);
-    // Perbarui state agar UI me-render ulang dengan data baru
-    // getTestimonials() akan mengambil array yang sudah dimutasi
-    setTestimonials(getTestimonials()); 
+  // 1. Ambil data dari API saat halaman dimuat
+  const fetchTestimonials = async () => {
+    setLoading(true);
+    const { error, data } = await getAllTestimonials();
+    if (!error) {
+      setTestimonials(data);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTestimonials();
+  }, []);
+
+  // 2. Handler tambah testimoni ke API
+  const handleAddTestimonial = async (testimonialData) => {
+    // testimonialData dari komponen AddTestimonial berupa { name, text }
+    // Tapi API kita hanya butuh { text }, nama diambil dari token di backend
+    
+    const { error } = await addTestimonialAPI(testimonialData.text);
+    
+    if (!error) {
+      toast.success("Terima kasih atas ulasan Anda!");
+      fetchTestimonials(); // Refresh data agar testimoni baru muncul
+    }
   };
 
   return (
@@ -31,8 +47,14 @@ const HomePage = () => {
       <TopRatedProducts />
       <Banner />
       <Subscribe />
-      {/* 4. Kirim data testimoni dan handler sebagai prop */}
-      <Testimonials testimonials={testimonials} />
+      
+      {/* Kirim data API ke komponen */}
+      {loading ? (
+        <p className="text-center py-10">Memuat testimoni...</p>
+      ) : (
+        <Testimonials testimonials={testimonials} />
+      )}
+      
       <AddTestimonial onAdd={handleAddTestimonial} />
     </div>
   );

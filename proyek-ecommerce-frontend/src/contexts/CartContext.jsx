@@ -1,11 +1,26 @@
-import React, { createContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useState, useMemo, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
+  // 1. Inisialisasi State dari LocalStorage (Lazy Initialization)
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const storedCart = localStorage.getItem('cartItems');
+      return storedCart ? JSON.parse(storedCart) : [];
+    } catch (error) {
+      console.error("Gagal memuat keranjang dari localStorage:", error);
+      return [];
+    }
+  });
+
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // 2. Efek Samping: Simpan ke LocalStorage setiap kali cartItems berubah
+  useEffect(() => {
+    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+  }, [cartItems]);
 
   const addToCart = useCallback((product, variant) => {
     setCartItems((prevItems) => {
@@ -20,7 +35,8 @@ export const CartProvider = ({ children }) => {
             : item
         );
       }
-      return [...prevItems, { product, variant, quantity: 1, id: `${product.id}-${variant.size}` }];
+      // Pastikan ID unik
+      return [...prevItems, { product, variant, quantity: 1, id: `${product.id}-${variant.size}-${Date.now()}` }];
     });
     setIsCartOpen(true);
   }, []);
@@ -41,9 +57,9 @@ export const CartProvider = ({ children }) => {
     }
   }, [removeFromCart]);
 
-  // --- FUNGSI BARU: Kosongkan Keranjang ---
   const clearCart = useCallback(() => {
     setCartItems([]);
+    localStorage.removeItem('cartItems'); // Hapus juga dari storage
   }, []);
 
   const toggleCart = useCallback(() => {
@@ -61,7 +77,7 @@ export const CartProvider = ({ children }) => {
     toggleCart,
     removeFromCart,
     updateQuantity,
-    clearCart, // Export fungsi ini
+    clearCart,
     total,
   }), [cartItems, isCartOpen, total, addToCart, toggleCart, removeFromCart, updateQuantity, clearCart]);
 

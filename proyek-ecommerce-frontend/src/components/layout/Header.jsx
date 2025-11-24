@@ -77,7 +77,10 @@ const Header = () => {
             
             {authedUser ? (
               <div className="flex items-center gap-2">
-                <span className="hidden sm:block font-medium">Halo, {authedUser.name}</span>
+                {/* --- UBAH BAGIAN INI --- */}
+                <Link to="/profile" className="hidden sm:flex items-center gap-2 hover:text-orange-500 transition font-medium" title="Pengaturan Akun">
+                    <span>Halo, {authedUser.name}</span>
+                </Link>
                 
                 {authedUser.role === 'admin' && (
                   <Link to="/admin" title="Ke Dashboard Admin">

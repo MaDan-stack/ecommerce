@@ -2,7 +2,8 @@ import React, { useContext } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 // --- PERBAIKAN: Tambahkan FaClipboardList ke dalam import ---
-import { FaChartLine, FaBoxOpen, FaPlusSquare, FaSignOutAlt, FaHome, FaClipboardList } from 'react-icons/fa';
+// Pastikan FaImages ada di dalam kurung kurawal
+import { FaChartLine, FaBoxOpen, FaPlusSquare, FaSignOutAlt, FaHome, FaClipboardList, FaImages, FaCommentDots } from 'react-icons/fa';
 import Logo from "../../assets/logo.png";
 
 const AdminLayout = () => {
@@ -39,8 +40,13 @@ const AdminLayout = () => {
           <Link to="/admin/products" className={linkClass('/admin/products')}>
             <FaBoxOpen /> Kelola Produk
           </Link>
-          <Link to="/admin/add-product" className={linkClass('/admin/add-product')}>
-            <FaPlusSquare /> Tambah Produk
+
+          <Link to="/admin/hero" className={linkClass('/admin/hero')}>
+    <FaImages /> Kelola Hero {/* Import FaImages dulu */}
+</Link>
+
+          <Link to="/admin/reviews" className={linkClass('/admin/reviews')}>
+            <FaCommentDots /> Moderasi Ulasan
           </Link>
           
           <div className="my-4 border-t dark:border-gray-700"></div>
