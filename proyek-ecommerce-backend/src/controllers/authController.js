@@ -22,7 +22,6 @@ const authController = {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // 3. Tentukan Role (Simulasi: email admin jadi admin)
-      // Jika email adalah 'admin@lokalstyle.com', set role 'admin', jika tidak 'user'
       const role = email === 'admin@lokalstyle.com' ? 'admin' : 'user';
 
       // 4. Simpan User ke Database
@@ -75,15 +74,12 @@ const authController = {
       }
 
       // 3. Buat Token (Access & Refresh)
-      // Payload berisi ID dan Role agar frontend tahu siapa yang login
       const payload = { id: user.id, role: user.role };
       
-      // Token akan kadaluarsa dalam 1 jam (access) dan 7 hari (refresh)
-      // Pastikan process.env.ACCESS_TOKEN_KEY sudah ada di file .env
       const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_KEY, { expiresIn: '1h' });
       const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_KEY, { expiresIn: '7d' });
 
-      // 4. Simpan Refresh Token ke Database (untuk fitur Logout nanti)
+      // 4. Simpan Refresh Token ke Database
       await Authentication.create({ token: refreshToken });
 
       // 5. Kirim Token ke Frontend
@@ -117,7 +113,6 @@ const authController = {
         });
       }
 
-      // Hapus token dari database agar tidak bisa dipakai lagi
       await Authentication.destroy({ where: { token: refreshToken } });
 
       return res.status(200).json({
@@ -137,11 +132,10 @@ const authController = {
   // --- GET ME (Cek Profil User yang Sedang Login) ---
   getMe: async (req, res) => {
     try {
-      // req.user.id didapat dari middleware verifyToken yang membedah token
       const { id } = req.user;
 
       const user = await User.findByPk(id, {
-        attributes: ['id', 'name', 'email', 'role'] // Jangan kirim password!
+        attributes: ['id', 'name', 'email', 'role']
       });
 
       if (!user) {
@@ -166,83 +160,126 @@ const authController = {
   },
 
   // --- 1. FORGOT PASSWORD (Kirim Email) ---
-    forgotPassword: async (req, res) => {
-        try {
-            const { email } = req.body;
-            const user = await User.findOne({ where: { email } });
+  forgotPassword: async (req, res) => {
+    try {
+      const { email } = req.body;
+      const user = await User.findOne({ where: { email } });
 
-            if (!user) {
-                return res.status(404).json({ status: 'fail', message: 'Email tidak terdaftar' });
-            }
+      if (!user) {
+        return res.status(404).json({ status: 'fail', message: 'Email tidak terdaftar' });
+      }
 
-            // Buat Token Reset (berlaku 15 menit)
-            // Kita pakai JWT lagi tapi dengan secret berbeda atau payload khusus
-            const resetToken = jwt.sign({ id: user.id }, process.env.ACCESS_TOKEN_KEY, { expiresIn: '15m' });
+      // Buat Token Reset (berlaku 15 menit)
+      const resetToken = jwt.sign({ id: user.id }, process.env.ACCESS_TOKEN_KEY, { expiresIn: '15m' });
 
-            // Konfigurasi Nodemailer
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS,
-                },
-            });
+      // Konfigurasi Nodemailer
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
 
-            // Link Frontend untuk reset password
-            // Ganti port 5173 sesuai port frontend Anda
-            const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+      const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
 
-            const mailOptions = {
-                from: process.env.EMAIL_USER,
-                to: email,
-                subject: 'Reset Password - LokalStyle',
-                html: `
-                    <h3>Permintaan Reset Password</h3>
-                    <p>Silakan klik link di bawah ini untuk mereset password Anda:</p>
-                    <a href="${resetLink}">${resetLink}</a>
-                    <p>Link ini akan kadaluarsa dalam 15 menit.</p>
-                `,
-            };
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Reset Password - LokalStyle',
+        html: `
+          <h3>Permintaan Reset Password</h3>
+          <p>Silakan klik link di bawah ini untuk mereset password Anda:</p>
+          <a href="${resetLink}">${resetLink}</a>
+          <p>Link ini akan kadaluarsa dalam 15 menit.</p>
+        `,
+      };
 
-            await transporter.sendMail(mailOptions);
+      await transporter.sendMail(mailOptions);
 
-            res.json({ status: 'success', message: 'Link reset password telah dikirim ke email Anda' });
+      res.json({ status: 'success', message: 'Link reset password telah dikirim ke email Anda' });
 
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ status: 'error', message: 'Gagal mengirim email' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ status: 'error', message: 'Gagal mengirim email' });
+    }
+  },
+
+  // --- 2. RESET PASSWORD (Simpan Password Baru) ---
+  resetPassword: async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { newPassword } = req.body;
+
+      let decoded;
+      try {
+        decoded = jwt.verify(token, process.env.ACCESS_TOKEN_KEY);
+      } catch (err) {
+        return res.status(400).json({ status: 'fail', message: 'Link kadaluarsa atau tidak valid' });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await User.update({ password: hashedPassword }, { where: { id: decoded.id } });
+
+      res.json({ status: 'success', message: 'Password berhasil diubah. Silakan login kembali.' });
+
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ status: 'error', message: 'Gagal mereset password' });
+    }
+  },
+
+  // --- 3. UPDATE PROFILE (Ganti Nama & Password) ---
+  updateProfile: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { name, currentPassword, newPassword } = req.body;
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({ status: 'fail', message: 'User tidak ditemukan' });
+      }
+
+      // 1. Update Nama (Jika ada)
+      if (name) {
+        user.name = name;
+      }
+
+      // 2. Update Password (Jika user ingin ganti)
+      if (newPassword) {
+        if (!currentPassword) {
+          return res.status(400).json({ status: 'fail', message: 'Harap masukkan password lama untuk konfirmasi.' });
         }
-    },
 
-    // --- 2. RESET PASSWORD (Simpan Password Baru) ---
-    resetPassword: async (req, res) => {
-        try {
-            const { token } = req.params;
-            const { newPassword } = req.body;
-
-            // Verifikasi Token
-            let decoded;
-            try {
-                decoded = jwt.verify(token, process.env.ACCESS_TOKEN_KEY);
-            } catch (err) {
-                return res.status(400).json({ status: 'fail', message: 'Link kadaluarsa atau tidak valid' });
-            }
-
-            // Hash Password Baru
-            const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-            // Update User
-            await User.update({ password: hashedPassword }, { where: { id: decoded.id } });
-
-            res.json({ status: 'success', message: 'Password berhasil diubah. Silakan login kembali.' });
-
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ status: 'error', message: 'Gagal mereset password' });
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+          return res.status(400).json({ status: 'fail', message: 'Password lama salah.' });
         }
-    },
-};
 
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+      }
 
+      await user.save();
+
+      res.json({
+        status: 'success',
+        message: 'Profil berhasil diperbarui',
+        data: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      });
+
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ status: 'error', message: 'Gagal update profil' });
+    }
+  }
+
+}; // <--- Tutup Objek authController di sini
 
 module.exports = authController;
