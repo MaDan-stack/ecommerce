@@ -1,3 +1,4 @@
+const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User, Authentication } = require('../models');
@@ -162,7 +163,86 @@ const authController = {
         message: 'Terjadi kesalahan pada server',
       });
     }
-  }
+  },
+
+  // --- 1. FORGOT PASSWORD (Kirim Email) ---
+    forgotPassword: async (req, res) => {
+        try {
+            const { email } = req.body;
+            const user = await User.findOne({ where: { email } });
+
+            if (!user) {
+                return res.status(404).json({ status: 'fail', message: 'Email tidak terdaftar' });
+            }
+
+            // Buat Token Reset (berlaku 15 menit)
+            // Kita pakai JWT lagi tapi dengan secret berbeda atau payload khusus
+            const resetToken = jwt.sign({ id: user.id }, process.env.ACCESS_TOKEN_KEY, { expiresIn: '15m' });
+
+            // Konfigurasi Nodemailer
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS,
+                },
+            });
+
+            // Link Frontend untuk reset password
+            // Ganti port 5173 sesuai port frontend Anda
+            const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: 'Reset Password - LokalStyle',
+                html: `
+                    <h3>Permintaan Reset Password</h3>
+                    <p>Silakan klik link di bawah ini untuk mereset password Anda:</p>
+                    <a href="${resetLink}">${resetLink}</a>
+                    <p>Link ini akan kadaluarsa dalam 15 menit.</p>
+                `,
+            };
+
+            await transporter.sendMail(mailOptions);
+
+            res.json({ status: 'success', message: 'Link reset password telah dikirim ke email Anda' });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ status: 'error', message: 'Gagal mengirim email' });
+        }
+    },
+
+    // --- 2. RESET PASSWORD (Simpan Password Baru) ---
+    resetPassword: async (req, res) => {
+        try {
+            const { token } = req.params;
+            const { newPassword } = req.body;
+
+            // Verifikasi Token
+            let decoded;
+            try {
+                decoded = jwt.verify(token, process.env.ACCESS_TOKEN_KEY);
+            } catch (err) {
+                return res.status(400).json({ status: 'fail', message: 'Link kadaluarsa atau tidak valid' });
+            }
+
+            // Hash Password Baru
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+            // Update User
+            await User.update({ password: hashedPassword }, { where: { id: decoded.id } });
+
+            res.json({ status: 'success', message: 'Password berhasil diubah. Silakan login kembali.' });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ status: 'error', message: 'Gagal mereset password' });
+        }
+    },
 };
+
+
 
 module.exports = authController;

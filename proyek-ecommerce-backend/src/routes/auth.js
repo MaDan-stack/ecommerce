@@ -7,6 +7,9 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.delete('/logout', authController.logout);
 
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password/:token', authController.resetPassword);
+
 // --- TAMBAHKAN BARIS INI ---
 // GET /api/auth/me
 // verifyToken memastikan user sudah login sebelum masuk ke controller
