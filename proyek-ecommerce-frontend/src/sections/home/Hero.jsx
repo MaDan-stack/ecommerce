@@ -2,37 +2,49 @@ import React, { useState, useEffect } from "react";
 import Slider from "react-slick";
 import { Link } from "react-router-dom";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
-import { getHeroSlides } from "../../utils/api"; // Pastikan path import ini benar
+import { getHeroSlides } from "../../utils/api"; 
+import PropTypes from 'prop-types';
 
-// --- KOMPONEN CUSTOM ARROW ---
-// (Diletakkan di luar komponen Hero agar tidak re-render setiap slide berubah)
+// Perbaikan: Ubah div menjadi button, tambah type="button", aria-label (S6848, S1082)
 const NextArrow = ({ onClick }) => {
   return (
-    <div
-      className="absolute right-4 top-1/2 z-20 -translate-y-1/2 cursor-pointer bg-white/50 hover:bg-orange-500 hover:text-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-200 hidden sm:block"
+    <button
+      type="button"
+      className="absolute right-4 top-1/2 z-20 -translate-y-1/2 cursor-pointer bg-white/50 hover:bg-orange-500 hover:text-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-200 hidden sm:block outline-none focus:ring-2 focus:ring-orange-500"
       onClick={onClick}
+      aria-label="Next slide"
     >
       <FaArrowRight />
-    </div>
+    </button>
   );
 };
 
+NextArrow.propTypes = {
+  onClick: PropTypes.func,
+};
+
+// Perbaikan: Ubah div menjadi button
 const PrevArrow = ({ onClick }) => {
   return (
-    <div
-      className="absolute left-4 top-1/2 z-20 -translate-y-1/2 cursor-pointer bg-white/50 hover:bg-orange-500 hover:text-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-200 hidden sm:block"
+    <button
+      type="button"
+      className="absolute left-4 top-1/2 z-20 -translate-y-1/2 cursor-pointer bg-white/50 hover:bg-orange-500 hover:text-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-200 hidden sm:block outline-none focus:ring-2 focus:ring-orange-500"
       onClick={onClick}
+      aria-label="Previous slide"
     >
       <FaArrowLeft />
-    </div>
+    </button>
   );
+};
+
+PrevArrow.propTypes = {
+  onClick: PropTypes.func,
 };
 
 const Hero = () => {
   const [slides, setSlides] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Ambil data slide dari Backend saat komponen dimuat
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -40,7 +52,6 @@ const Hero = () => {
         if (!error && data.length > 0) {
           setSlides(data);
         } else {
-          // Jika tidak ada data, set array kosong
           setSlides([]);
         }
       } catch (err) {
@@ -68,7 +79,6 @@ const Hero = () => {
     prevArrow: <PrevArrow />,
   };
 
-  // Tampilan saat Loading
   if (loading) {
     return (
       <div className="min-h-[550px] sm:min-h-[650px] bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
@@ -80,7 +90,6 @@ const Hero = () => {
     );
   }
 
-  // Tampilan jika TIDAK ADA slide di database
   if (slides.length === 0) {
     return (
       <div className="min-h-[400px] bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 p-8 text-center">
@@ -103,7 +112,6 @@ const Hero = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 px-4 sm:px-0">
                 
                 {/* Kolom Teks */}
-                {/* PERUBAHAN DI SINI: Penambahan 'sm:pl-16' agar teks tidak tertutup panah */}
                 <div className="flex flex-col justify-center gap-4 pt-12 sm:pt-0 text-center sm:text-left order-2 sm:order-1 relative z-10 sm:pl-16">
                   <h1
                     className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-tight"

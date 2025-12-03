@@ -458,7 +458,7 @@ async function addTestimonialAPI(text) {
   }
 }
 
-// --- HERO SLIDES (DIPERBAIKI) ---
+// --- HERO SLIDES ---
 
 async function getHeroSlides() {
   try {
@@ -483,7 +483,7 @@ async function addHeroSlide(slideData) {
     if (responseJson.status !== 'success') return { error: true, message: responseJson.message };
     return { error: false };
   } catch (error) {
-    console.error("Add hero slide error:", error); // <-- PERBAIKAN: Gunakan variabel error
+    console.error("Add hero slide error:", error);
     return { error: true, message: "Gagal koneksi" };
   }
 }
@@ -495,7 +495,76 @@ async function deleteHeroSlide(id) {
     if (responseJson.status !== 'success') return { error: true };
     return { error: false };
   } catch (error) {
-    console.error("Delete hero slide error:", error); // <-- PERBAIKAN: Gunakan variabel error
+    console.error("Delete hero slide error:", error);
+    return { error: true };
+  }
+}
+
+// --- PAYMENT PROOF & METHODS ---
+
+async function uploadPaymentProof(orderId, file) {
+  const formData = new FormData();
+  formData.append('image', file); 
+
+  try {
+    const token = getAccessToken();
+    const response = await fetch(`${BASE_URL}/orders/${orderId}/payment-proof`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const responseJson = await response.json();
+
+    if (responseJson.status !== 'success') {
+      return { error: true, message: responseJson.message };
+    }
+    return { error: false, data: responseJson.data };
+  } catch (error) {
+    console.error("Upload payment proof error:", error);
+    return { error: true, message: "Gagal terhubung ke server" };
+  }
+}
+
+async function getPaymentMethods() {
+  try {
+    const response = await fetch(`${BASE_URL}/payments`);
+    const responseJson = await response.json();
+    if (responseJson.status !== 'success') return { error: true, data: [] };
+    return { error: false, data: responseJson.data };
+  } catch (error) {
+    console.error("Get payment methods error:", error);
+    return { error: true, data: [] };
+  }
+}
+
+async function addPaymentMethod(formData) {
+  try {
+    const token = getAccessToken();
+    const response = await fetch(`${BASE_URL}/payments`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData, 
+    });
+    const responseJson = await response.json();
+    if (responseJson.status !== 'success') return { error: true, message: responseJson.message };
+    return { error: false };
+  } catch (error) {
+    console.error("Add payment method error:", error);
+    return { error: true, message: "Gagal koneksi" };
+  }
+}
+
+async function deletePaymentMethod(id) {
+  try {
+    const response = await fetchWithToken(`${BASE_URL}/payments/${id}`, { method: 'DELETE' });
+    const responseJson = await response.json();
+    if (responseJson.status !== 'success') return { error: true };
+    return { error: false };
+  } catch (error) {
+    console.error("Delete payment method error:", error);
     return { error: true };
   }
 }
@@ -528,5 +597,9 @@ export {
   addTestimonialAPI,
   getHeroSlides,
   addHeroSlide,
-  deleteHeroSlide
+  deleteHeroSlide,
+  uploadPaymentProof,
+  getPaymentMethods,
+  addPaymentMethod,
+  deletePaymentMethod
 };

@@ -143,7 +143,46 @@ const orderController = {
             console.error(error);
             res.status(500).json({ status: 'error', message: 'Gagal memperbarui pesanan' });
         }
-    }
+    },
+    
+    uploadPaymentProof: async (req, res) => {
+        try {
+            const { id } = req.params; // ID Order
+            
+            // Cek apakah ada file
+            if (!req.file) {
+                return res.status(400).json({ status: 'fail', message: 'Harap upload gambar bukti pembayaran' });
+            }
+
+            const order = await Order.findByPk(id);
+            
+            // Validasi kepemilikan order (Keamanan)
+            if (!order) {
+                return res.status(404).json({ status: 'fail', message: 'Pesanan tidak ditemukan' });
+            }
+            if (order.userId !== req.user.id && req.user.role !== 'admin') {
+                return res.status(403).json({ status: 'fail', message: 'Ini bukan pesanan Anda' });
+            }
+
+            // Update Order
+            order.paymentProof = req.file.path; // URL dari Cloudinary
+            order.status = 'awaiting_verification'; // Status berubah
+            await order.save();
+
+            res.json({
+                status: 'success',
+                message: 'Bukti pembayaran berhasil diupload. Mohon tunggu verifikasi admin.',
+                data: { 
+                    paymentProof: order.paymentProof,
+                    status: order.status
+                }
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ status: 'error', message: 'Gagal upload bukti pembayaran' });
+        }
+    },
 };
 
 module.exports = orderController;

@@ -8,37 +8,50 @@ import { Toaster } from 'react-hot-toast';
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import AdminRoute from "./components/auth/AdminRoute";     // <-- BARU
-import AdminLayout from "./components/layout/AdminLayout"; // <-- BARU
+import AdminRoute from "./components/auth/AdminRoute";
+import AdminLayout from "./components/layout/AdminLayout";
 
 // Contexts
 import { CartContext } from "./contexts/CartContext";
 import CartSidebar from "./components/ui/CartSidebar";
 
-// Pages User
-import HomePage from "./pages/HomePage";
-import ProductsPage from "./pages/ProductsPage";
+// --- LAZY IMPORT (Code Splitting) ---
 
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
+// Halaman User - Umum
+const HomePage = React.lazy(() => import("./pages/HomePage"));
+const ProductsPage = React.lazy(() => import("./pages/ProductsPage"));
+const ProductDetailPage = React.lazy(() => import("./pages/ProductDetailPage"));
+const SearchPage = React.lazy(() => import("./pages/SearchPage"));
+const NotFoundPage = React.lazy(() => import("./pages/NotFoundPage"));
+
+// Halaman User - Auth
+const LoginPage = React.lazy(() => import("./pages/LoginPage"));
+const RegisterPage = React.lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = React.lazy(() => import("./pages/ResetPasswordPage"));
+
+// Halaman User - Terproteksi (Login Required)
 const UserProfilePage = React.lazy(() => import("./pages/UserProfilePage"));
+const CheckoutPage = React.lazy(() => import("./pages/CheckoutPage"));
+const OrderHistoryPage = React.lazy(() => import("./pages/OrderHistoryPage"));
+const PaymentPage = React.lazy(() => import("./pages/PaymentPage")); // <-- Halaman Baru
 
-import SearchPage from "./pages/SearchPage";
-import CheckoutPage from "./pages/CheckoutPage";
-import NotFoundPage from "./pages/NotFoundPage";
-import OrderHistoryPage from "./pages/OrderHistoryPage";
-const ProductDetailPage = React.lazy(() => import("./pages/ProductDetailPage"));
-
-// Pages Admin
-import AdminProductList from "./pages/admin/AdminProductList";
-import AdminAddProduct from "./pages/admin/AdminAddProduct"
-import AdminEditProduct from "./pages/admin/AdminEditProduct";
-import AdminOrderList from "./pages/admin/AdminOrderList";
+// Halaman Admin
 const AdminDashboard = React.lazy(() => import("./pages/admin/AdminDashboard"));
-const AdminReviewList = React.lazy(() => import("./pages/admin/AdminReviewList"));
+const AdminProductList = React.lazy(() => import("./pages/admin/AdminProductList"));
+const AdminAddProduct = React.lazy(() => import("./pages/admin/AdminAddProduct"));
+const AdminEditProduct = React.lazy(() => import("./pages/admin/AdminEditProduct"));
+const AdminOrderList = React.lazy(() => import("./pages/admin/AdminOrderList"));
 const AdminHeroPage = React.lazy(() => import("./pages/admin/AdminHeroPage"));
+const AdminReviewList = React.lazy(() => import("./pages/admin/AdminReviewList"));
+const AdminPaymentSettings = React.lazy(() => import("./pages/admin/AdminPaymentSettings"));
+
+// Komponen Loading
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-orange-500"></div>
+  </div>
+);
 
 const App = () => {
   const { isCartOpen, toggleCart } = useContext(CartContext);
@@ -72,69 +85,82 @@ const App = () => {
           },
         }}
       />
-      <Suspense fallback={<div className="text-center p-10">Loading...</div>}>
-      <Routes>
-        {/* --- RUTE ADMIN (Layout Terpisah) --- */}
-        <Route path="/admin" element={
-          <AdminRoute>
-            <AdminLayout />
-          </AdminRoute>
-        }>
-          <Route index element={<AdminDashboard />} />
-          <Route path="products" element={<AdminProductList />} />
-          <Route path="add-product" element={<AdminAddProduct />} />
-          <Route path="products/edit/:id" element={<AdminEditProduct />} />
+      
+      <Suspense fallback={<div className="h-screen flex items-center justify-center">Loading App...</div>}>
+        <Routes>
+          
+          {/* --- RUTE ADMIN --- */}
+          <Route path="/admin" element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }>
+            <Route index element={<AdminDashboard />} />
+            <Route path="products" element={<AdminProductList />} />
+            <Route path="add-product" element={<AdminAddProduct />} />
+            <Route path="products/edit/:id" element={<AdminEditProduct />} />
             <Route path="orders" element={<AdminOrderList />} />
-            <Route path="orders" element={<AdminOrderList />} />
-            <Route path="reviews" element={<AdminReviewList />} /> {/* <-- Baru */}
             <Route path="hero" element={<AdminHeroPage />} />
-        </Route>
+            <Route path="reviews" element={<AdminReviewList />} />
+            <Route path="payments" element={<AdminPaymentSettings />} />
+          </Route>
 
-        {/* --- RUTE USER (Menggunakan Header & Footer) --- */}
-        <Route path="*" element={
-            <>             
-            <Header />
-            <main className="flex-grow">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
-                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-<Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-                <Route path="/search" element={<SearchPage />} />
-                <Route path="/products" element={<ProductsPage />} />
-                {/* Rute Detail Produk bisa diakses publik sekarang */}
-                <Route path="/products/:id" element={<ProductDetailPage />} />
-                
-                <Route path="/checkout" element={
-                  <ProtectedRoute>
-                    <CheckoutPage />
-                  </ProtectedRoute>
-                } />
+          {/* --- RUTE USER --- */}
+          <Route path="*" element={
+            <>
+              <Header />
+              <main className="flex-grow">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Routes>
+                    {/* Halaman Publik */}
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/search" element={<SearchPage />} />
+                    <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/products/:id" element={<ProductDetailPage />} />
+                    
+                    {/* Auth */}
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
-                <Route 
-              path="/orders" 
-              element={
-                <ProtectedRoute>
-                  <OrderHistoryPage />
-                </ProtectedRoute>
-              }/>
+                    {/* Halaman Terproteksi (Wajib Login) */}
+                    <Route path="/profile" element={
+                      <ProtectedRoute>
+                        <UserProfilePage />
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/checkout" element={
+                      <ProtectedRoute>
+                        <CheckoutPage />
+                      </ProtectedRoute>
+                    } />
 
-                  <Route path="/profile" element={
-        <ProtectedRoute>
-            <UserProfilePage />
-        </ProtectedRoute>
-    } />
-                  
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </main>
-            <Footer />
-            <CartSidebar isOpen={isCartOpen} toggleCart={toggleCart} />
-          </>
-        } />
+                    <Route path="/orders" element={
+                      <ProtectedRoute>
+                        <OrderHistoryPage />
+                      </ProtectedRoute>
+                    } />
+
+                    {/* Rute Pembayaran (BARU) */}
+                    <Route path="/payment/:id" element={
+                      <ProtectedRoute>
+                        <PaymentPage />
+                      </ProtectedRoute>
+                    } />
+                    
+                    {/* 404 Not Found */}
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Suspense>
+              </main>
+              <Footer />
+              <CartSidebar isOpen={isCartOpen} toggleCart={toggleCart} />
+            </>
+          } />
         </Routes>
-        </Suspense>
+      </Suspense>
     </div>
   );
 };

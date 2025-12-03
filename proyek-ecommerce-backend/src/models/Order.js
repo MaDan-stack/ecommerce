@@ -7,15 +7,22 @@ const Order = db.define('orders', {
         primaryKey: true,
         autoIncrement: true
     },
-    // UserId ditambahkan otomatis via relasi, tapi kita bisa index manual nanti
+    // UserId ditambahkan otomatis via relasi
     totalAmount: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false
     },
     status: {
-        type: DataTypes.ENUM('pending', 'paid', 'shipped', 'completed', 'cancelled'),
+        // Update Status: Tambahkan 'awaiting_verification'
+        type: DataTypes.ENUM('pending', 'awaiting_verification', 'paid', 'shipped', 'completed', 'cancelled'),
         defaultValue: 'pending'
     },
+    // --- KOLOM BARU: BUKTI BAYAR ---
+    paymentProof: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    // -------------------------------
     shippingAddress: {
         type: DataTypes.TEXT,
         allowNull: false
@@ -30,15 +37,15 @@ const Order = db.define('orders', {
     }
 }, {
     freezeTableName: true,
-    // --- OPTIMASI: MENAMBAHKAN INDEX ---
+    // --- PENTING: JANGAN HAPUS INDEX INI ---
     indexes: [
         {
             name: 'order_status_index',
-            fields: ['status'] // Mempercepat query Dashboard (Total Revenue)
+            fields: ['status'] // Percepat Dashboard
         },
         {
             name: 'order_userid_index',
-            fields: ['userId'] // Mempercepat load "Riwayat Pesanan" user
+            fields: ['userId'] // Percepat Riwayat Pesanan
         }
     ]
 });

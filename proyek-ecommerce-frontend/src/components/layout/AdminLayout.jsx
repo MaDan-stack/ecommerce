@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 // --- PERBAIKAN: Tambahkan FaClipboardList ke dalam import ---
 // Pastikan FaImages ada di dalam kurung kurawal
-import { FaChartLine, FaBoxOpen, FaPlusSquare, FaSignOutAlt, FaHome, FaClipboardList, FaImages, FaCommentDots } from 'react-icons/fa';
+import { FaChartLine, FaBoxOpen, FaWallet, FaSignOutAlt, FaHome, FaClipboardList, FaImages, FaCommentDots } from 'react-icons/fa';
 import Logo from "../../assets/logo.png";
 
 const AdminLayout = () => {
@@ -36,6 +36,10 @@ const AdminLayout = () => {
           <Link to="/admin/orders" className={linkClass('/admin/orders')}>
             <FaClipboardList /> Kelola Pesanan
           </Link>
+
+          <Link to="/admin/payments" className={linkClass('/admin/payments')}>
+    <FaWallet /> Metode Pembayaran
+</Link>
 
           <Link to="/admin/products" className={linkClass('/admin/products')}>
             <FaBoxOpen /> Kelola Produk

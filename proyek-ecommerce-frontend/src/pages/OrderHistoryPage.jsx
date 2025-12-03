@@ -2,16 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { getMyOrders } from '../utils/api';
 import { formatPrice } from '../utils/formatters';
 import { Link } from 'react-router-dom';
-import ReviewModal from '../components/ui/ReviewModal'; // Import Modal
+import ReviewModal from '../components/ui/ReviewModal';
+import PaymentModal from '../components/ui/PaymentModal';
+import { FaUpload, FaStar, FaClock, FaCheckCircle } from 'react-icons/fa'; // Import kembali FaClock & FaCheckCircle karena dipakai di helper
 
 const OrderHistoryPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // State untuk Modal Review
+  // State Modal
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [selectedOrderIdReview, setSelectedOrderIdReview] = useState(null);
+
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [selectedOrderIdPayment, setSelectedOrderIdPayment] = useState(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -28,8 +33,37 @@ const OrderHistoryPage = () => {
 
   const handleOpenReview = (item, orderId) => {
     setSelectedProduct(item);
-    setSelectedOrderId(orderId);
+    setSelectedOrderIdReview(orderId);
     setIsReviewOpen(true);
+  };
+
+  const handleOpenPayment = (orderId) => {
+    setSelectedOrderIdPayment(orderId);
+    setIsPaymentOpen(true);
+  };
+
+  const handleSuccess = () => {
+    fetchOrders();
+  };
+
+  // Helper untuk Warna Badge (Mengatasi Nested Ternary)
+  const getStatusBadge = (status) => {
+    const styles = {
+      completed: 'bg-green-100 text-green-700 border border-green-200',
+      paid: 'bg-blue-100 text-blue-700 border border-blue-200',
+      shipped: 'bg-indigo-100 text-indigo-700 border border-indigo-200',
+      awaiting_verification: 'bg-orange-100 text-orange-700 border border-orange-200',
+      cancelled: 'bg-red-100 text-red-700 border border-red-200',
+      default: 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+    };
+    return styles[status] || styles.default;
+  };
+
+  // Helper untuk Label Status
+  const getStatusLabel = (status) => {
+    if (status === 'awaiting_verification') return <><FaClock /> Menunggu Verifikasi</>;
+    if (status === 'pending') return 'Belum Bayar';
+    return status;
   };
 
   if (loading) {
@@ -62,21 +96,19 @@ const OrderHistoryPage = () => {
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Order ID: #{order.id}</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      {new Date(order.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {new Date(order.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                    order.status === 'completed' ? 'bg-green-100 text-green-700' :
-                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
-                    {order.status}
+                  
+                  {/* Badge Status (Refactored) */}
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${getStatusBadge(order.status)}`}>
+                    {getStatusLabel(order.status)}
                   </span>
                 </div>
 
-                {/* Daftar Item */}
+                {/* Daftar Item (Perbaikan Optional Chaining) */}
                 <div className="p-4">
-                  {order.order_items && order.order_items.map((item) => (
+                  {order?.order_items?.map((item) => (
                     <div key={item.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 border-b dark:border-gray-700 last:border-0 gap-4">
                       <div>
                         <Link to={`/products/${item.productId}`} className="font-medium text-gray-800 dark:text-white hover:text-orange-500 transition-colors">
@@ -87,23 +119,45 @@ const OrderHistoryPage = () => {
                         </p>
                       </div>
                       
-                      {/* TOMBOL ULASAN (Hanya muncul jika Completed) */}
                       {order.status === 'completed' && (
                         <button 
                           onClick={() => handleOpenReview(item, order.id)}
-                          className="text-xs border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-4 py-2 rounded-full transition-all duration-300 font-semibold"
+                          className="text-xs border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-4 py-2 rounded-full transition-all duration-300 font-semibold flex items-center gap-1"
                         >
-                          ★ Beri Ulasan
+                          <FaStar /> Beri Ulasan
                         </button>
                       )}
                     </div>
                   ))}
                 </div>
 
-                {/* Footer Total */}
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/30 flex justify-end items-center gap-2">
-                    <span className="text-sm text-gray-500">Total Pesanan:</span>
-                    <span className="text-lg font-bold text-orange-500">{formatPrice(order.totalAmount)}</span>
+                {/* Footer Actions */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/30 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="text-center sm:text-left">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Total Pembayaran</p>
+                        <p className="text-lg font-bold text-orange-500">{formatPrice(order.totalAmount)}</p>
+                    </div>
+
+                    {order.status === 'pending' && (
+                        <button 
+                            onClick={() => handleOpenPayment(order.id)}
+                            className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 shadow-md transition flex items-center justify-center gap-2"
+                        >
+                            <FaUpload /> Upload Bukti Bayar
+                        </button>
+                    )}
+                    
+                    {order.status === 'awaiting_verification' && (
+                        <div className="text-sm text-orange-600 bg-orange-50 px-4 py-2 rounded-lg border border-orange-100 flex items-center gap-2">
+                            <FaClock /> Bukti sedang diverifikasi admin.
+                        </div>
+                    )}
+
+                    {['paid', 'shipped', 'completed'].includes(order.status) && (
+                        <div className="text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg border border-green-100 flex items-center gap-2">
+                            <FaCheckCircle /> Pembayaran Diterima
+                        </div>
+                    )}
                 </div>
               </div>
             ))}
@@ -111,19 +165,22 @@ const OrderHistoryPage = () => {
         )}
       </div>
 
-      {/* Popup Modal Review */}
       {selectedProduct && (
         <ReviewModal 
           isOpen={isReviewOpen}
           onClose={() => setIsReviewOpen(false)}
           product={selectedProduct}
-          orderId={selectedOrderId}
-          onSuccess={() => {
-             // Opsional: Bisa refresh order list jika mau disable tombol review setelah sukses
-             // fetchOrders(); 
-          }}
+          orderId={selectedOrderIdReview}
+          onSuccess={handleSuccess}
         />
       )}
+
+      <PaymentModal 
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        orderId={selectedOrderIdPayment}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 };
