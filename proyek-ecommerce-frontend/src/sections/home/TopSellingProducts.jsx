@@ -1,11 +1,27 @@
-import React from "react";
-import { Link } from "react-router-dom"; // 1. Impor komponen Link
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import RatingStars from "../../components/ui/RatingStars";
-import { getBestSellingProducts } from "../../utils/data";
 import { formatPrice } from "../../utils/formatters";
+import { getProducts } from "../../utils/api"; // <-- Gunakan API
 
 const TopSellingProducts = () => {
-  const products = getBestSellingProducts();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      // Panggil API (Kita ambil kategori 'women' sebagai contoh "Top Selling" sesuai data dummy lama)
+      const { error, data } = await getProducts({ category: 'women' });
+      
+      if (!error) {
+        // Ambil 4 produk teratas
+        setProducts(data.slice(0, 4));
+      }
+      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
 
   const getStartingPrice = (variants) => {
     if (!variants || variants.length === 0) return formatPrice(0);
@@ -13,10 +29,14 @@ const TopSellingProducts = () => {
     return formatPrice(minPrice);
   };
 
+  if (loading) {
+    return <div className="text-center py-20">Memuat produk top...</div>;
+  }
+
   return (
     <div className="mt-14 mb-12 flex items-center justify-center">
       <div className="container">
-        {/* Bagian Judul */}
+        {/* Header Section */}
         <div className="text-center mb-10 mx-auto">
           <p data-aos="fade-up" className="text-sm text-orange-500">
             Produk Pilihan Untuk Anda
@@ -29,36 +49,39 @@ const TopSellingProducts = () => {
           </p>
         </div>
 
-        {/* Grid Produk */}
+        {/* Body Section */}
         <div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 place-items-center">
-            {products.map((product, index) => (
-              <Link to={`/products/${product.id}`} key={product.id}>
-                <div
-                  data-aos="fade-up"
-                  data-aos-delay={index * 200}
-                  className="space-y-3 p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 h-full"
-                >
-                  <img
-                    src={product.img}
-                    alt={product.title}
-                    className="h-[220px] w-full object-cover rounded-md"
-                  />
-                  <div>
-                    <h3 className="font-semibold text-black dark:text-white">{product.title}</h3>
-                    <p className="text-sm font-bold text-orange-500">
-                      Mulai dari {getStartingPrice(product.variants)}
-                    </p>
-                    <RatingStars rating={product.rating} reviewCount={product.reviewCount} />
+          {products.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 place-items-center">
+              {products.map((product, index) => (
+                <Link to={`/products/${product.id}`} key={product.id} className="w-full">
+                  <div
+                    data-aos="fade-up"
+                    data-aos-delay={index * 100}
+                    className="space-y-3 p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 h-full bg-white dark:bg-gray-800"
+                  >
+                    <img
+                      src={product.img}
+                      alt={product.title}
+                      className="h-[220px] w-full object-cover rounded-md"
+                      onError={(e) => { e.target.src = 'https://placehold.co/400x300?text=No+Image'; }}
+                    />
+                    <div>
+                      <h3 className="font-semibold text-black dark:text-white truncate">{product.title}</h3>
+                      <p className="text-sm font-bold text-orange-500">
+                        Mulai dari {getStartingPrice(product.variants)}
+                      </p>
+                      <RatingStars rating={product.rating} reviewCount={product.reviewCount} />
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500">Belum ada produk top selling.</p>
+          )}
 
-          {/* --- BAGIAN YANG DIPERBAIKI --- */}
           <div className="flex justify-center">
-            {/* 2. Bungkus tombol dengan Link yang mengarah ke /products */}
             <Link to="/products">
               <button className="text-center mt-10 cursor-pointer bg-orange-500 text-white py-1 px-5 rounded-md hover:bg-orange-600 duration-300">
                 Lihat Semua Produk

@@ -1,9 +1,8 @@
 import React, { useState, useContext } from "react";
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Logo from "../../assets/logo.png";
 import DarkMode from "../ui/DarkMode.jsx";
 import { IoMdSearch } from "react-icons/io";
-// Tambahkan FaHistory di sini
 import { FaShoppingCart, FaCaretDown, FaUserCircle, FaSignOutAlt, FaChartLine, FaHistory } from "react-icons/fa";
 import { CartContext } from "../../contexts/CartContext";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -26,6 +25,7 @@ const Header = () => {
   const itemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = (e) => {
@@ -36,13 +36,28 @@ const Header = () => {
     }
   };
 
+  const checkActive = (menuLink) => {
+    if (menuLink === "/") {
+      return location.pathname === "/";
+    }
+    if (menuLink.includes("?")) {
+      return location.pathname + location.search === menuLink;
+    }
+    if (menuLink === "/products") {
+        return location.pathname.startsWith("/products") && !location.search.includes("category=");
+    }
+    return false;
+  };
+
   return (
     <div className="shadow-md bg-white dark:bg-gray-900 dark:text-white duration-200 z-40 sticky top-0">
+      {/* Upper Navbar */}
       <div className="bg-orange-200/40 py-2 flex justify-center items-center">
         <div className="container flex justify-between items-center">
           <Link to="/" className="font-bold text-2xl sm:text-3xl flex gap-2 items-center">
             <img src={Logo} alt="LokalStyle Logo" className="w-10" />
-            LokalStyle
+            {/* PERBAIKAN 1: Bungkus teks 'LokalStyle' dengan span */}
+            <span>LokalStyle</span>
           </Link>
 
           <div className="flex justify-between items-center gap-4">
@@ -77,8 +92,7 @@ const Header = () => {
             
             {authedUser ? (
               <div className="flex items-center gap-2">
-                {/* --- UBAH BAGIAN INI --- */}
-                <Link to="/profile" className="hidden sm:flex items-center gap-2 hover:text-orange-500 transition font-medium" title="Pengaturan Akun">
+                <Link to="/profile" className={`hidden sm:flex items-center gap-2 hover:text-orange-500 transition font-medium ${location.pathname === '/profile' ? 'text-orange-500' : ''}`} title="Pengaturan Akun">
                     <span>Halo, {authedUser.name}</span>
                 </Link>
                 
@@ -90,13 +104,11 @@ const Header = () => {
                   </Link>
                 )}
 
-                {/* --- TOMBOL BARU: Riwayat Pesanan --- */}
                 <Link to="/orders" title="Riwayat Pesanan">
-                    <button className="p-2 rounded-full hover:bg-white/20 text-gray-600 dark:text-gray-200">
+                    <button className={`p-2 rounded-full hover:bg-white/20 transition-colors ${location.pathname === '/orders' ? 'text-orange-500' : 'text-gray-600 dark:text-gray-200'}`}>
                         <FaHistory className="text-xl" />
                     </button>
                 </Link>
-                {/* ----------------------------------- */}
 
                 <button onClick={logout} className="p-2 rounded-full hover:bg-white/20 text-gray-600 dark:text-gray-200" title="Logout">
                   <FaSignOutAlt className="text-xl" />
@@ -108,7 +120,7 @@ const Header = () => {
                   className="bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-200 text-white py-1 px-4 rounded-full flex items-center gap-2"
                   aria-label="Login"
                 >
-                  Login
+                  <span>Login</span>
                   <FaUserCircle className="text-xl" />
                 </button>
               </Link>
@@ -120,22 +132,35 @@ const Header = () => {
           </div>
         </div>
       </div>
-      {/* Lower Navbar */}
+
+      {/* Lower Navbar (MENU UTAMA) */}
       <div data-aos className="flex justify-center">
         <ul className="sm:flex hidden items-center gap-4 py-2">
-          {Menu.map((data) => (
-            <li key={data.id}>
-              <Link
-                to={data.link}
-                className="inline-block px-4 hover:text-orange-500 duration-200"
-              >
-                {data.name}
-              </Link>
-            </li>
-          ))}
+          {Menu.map((data) => {
+            const isActive = checkActive(data.link);
+            
+            return (
+              <li key={data.id}>
+                <Link
+                  to={data.link}
+                  className={`inline-block px-4 py-1 transition-all duration-200 relative 
+                  after:content-[''] after:absolute after:bg-orange-500 after:h-[2px] after:left-0 after:bottom-0 after:transition-all after:duration-300
+                  ${isActive 
+                    ? "text-orange-500 after:w-full"
+                    : "hover:text-orange-500 after:w-0 hover:after:w-full"
+                  }`}
+                >
+                  {data.name}
+                </Link>
+              </li>
+            );
+          })}
+          
+          {/* Dropdown Kategori */}
           <li className="group relative cursor-pointer">
-            <button className="flex items-center gap-1 hover:text-orange-500 py-2">
-              Kategori
+            <button className="flex items-center gap-1 hover:text-orange-500 py-2 transition-all duration-200 relative">
+              {/* PERBAIKAN 2: Bungkus teks 'Kategori' dengan span */}
+              <span>Kategori</span>
               <span>
                 <FaCaretDown className="transition-all duration-200 group-hover:rotate-180" />
               </span>

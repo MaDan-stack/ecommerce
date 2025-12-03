@@ -77,15 +77,68 @@ async function getUserLogged() {
   }
 }
 
+async function updateProfile(profileData) {
+  try {
+    const response = await fetchWithToken(`${BASE_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileData),
+    });
+    const responseJson = await response.json();
+
+    if (responseJson.status !== 'success') {
+      return { error: true, message: responseJson.message };
+    }
+    return { error: false, data: responseJson.data, message: responseJson.message };
+  } catch (error) {
+    console.error("Update profile error:", error);
+    return { error: true, message: "Gagal terhubung ke server" };
+  }
+}
+
+async function forgotPassword(email) {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const responseJson = await response.json();
+
+    if (responseJson.status !== 'success') {
+      return { error: true, message: responseJson.message };
+    }
+    return { error: false, message: responseJson.message };
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return { error: true, message: "Gagal terhubung ke server" };
+  }
+}
+
+async function resetPassword(token, newPassword) {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/reset-password/${token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPassword }),
+    });
+    const responseJson = await response.json();
+
+    if (responseJson.status !== 'success') {
+      return { error: true, message: responseJson.message };
+    }
+    return { error: false, message: responseJson.message };
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return { error: true, message: "Gagal terhubung ke server" };
+  }
+}
+
 // --- PRODUCTS ---
 
-// 1. Ambil Produk (Bisa Semua, atau Filter berdasarkan Title/Category)
 async function getProducts(params) {
   try {
-    // Buat URL dasar
     let url = `${BASE_URL}/products`;
-
-    // Jika ada parameter (misal: { title: 'kemeja' }), tambahkan ke URL
     if (params) {
       const queryParams = new URLSearchParams(params).toString();
       url += `?${queryParams}`;
@@ -202,7 +255,8 @@ async function uploadImage(file) {
   }
 }
 
-// Fungsi untuk membuat pesanan baru
+// --- ORDERS ---
+
 async function createOrder(orderData) {
   try {
     const response = await fetchWithToken(`${BASE_URL}/orders`, {
@@ -243,10 +297,9 @@ async function getMyOrders() {
   }
 }
 
-// Ambil SEMUA pesanan (Khusus Admin)
 async function getAllOrders() {
   try {
-    const response = await fetchWithToken(`${BASE_URL}/orders`); // GET /api/orders
+    const response = await fetchWithToken(`${BASE_URL}/orders`); 
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
@@ -259,7 +312,6 @@ async function getAllOrders() {
   }
 }
 
-// Update Status Pesanan (Khusus Admin)
 async function updateOrderStatus(id, status) {
   try {
     const response = await fetchWithToken(`${BASE_URL}/orders/${id}/status`, {
@@ -282,7 +334,8 @@ async function updateOrderStatus(id, status) {
   }
 }
 
-// Ambil Statistik Dashboard (Admin)
+// --- DASHBOARD ---
+
 async function getDashboardStats() {
   try {
     const response = await fetchWithToken(`${BASE_URL}/dashboard/stats`);
@@ -298,7 +351,77 @@ async function getDashboardStats() {
   }
 }
 
-// --- TESTIMONIALS (BARU) ---
+// --- REVIEWS ---
+
+async function getProductReviews(productId) {
+  try {
+    const response = await fetch(`${BASE_URL}/reviews/${productId}`);
+    const responseJson = await response.json();
+
+    if (responseJson.status !== 'success') {
+      return { error: true, data: [] };
+    }
+    return { error: false, data: responseJson.data };
+  } catch (error) {
+    console.error("Get reviews error:", error);
+    return { error: true, data: [] };
+  }
+}
+
+async function addReview({ productId, orderId, rating, comment }) {
+  try {
+    const response = await fetchWithToken(`${BASE_URL}/reviews`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId, orderId, rating, comment }),
+    });
+    const responseJson = await response.json();
+
+    if (responseJson.status !== 'success') {
+      return { error: true, message: responseJson.message };
+    }
+    return { error: false, data: responseJson.data };
+  } catch (error) {
+    console.error("Add review error:", error);
+    return { error: true, message: "Gagal terhubung ke server" };
+  }
+}
+
+async function getAllReviewsAdmin() {
+  try {
+    const response = await fetchWithToken(`${BASE_URL}/reviews`);
+    const responseJson = await response.json();
+
+    if (responseJson.status !== 'success') {
+      return { error: true, data: [] };
+    }
+    return { error: false, data: responseJson.data };
+  } catch (error) {
+    console.error("Get admin reviews error:", error);
+    return { error: true, data: [] };
+  }
+}
+
+async function deleteReview(id) {
+  try {
+    const response = await fetchWithToken(`${BASE_URL}/reviews/${id}`, {
+      method: 'DELETE',
+    });
+    const responseJson = await response.json();
+
+    if (responseJson.status !== 'success') {
+      alert(responseJson.message);
+      return { error: true };
+    }
+    return { error: false };
+  } catch (error) {
+    console.error("Delete review error:", error);
+    return { error: true };
+  }
+}
+
+// --- TESTIMONIALS ---
+
 async function getAllTestimonials() {
   try {
     const response = await fetch(`${BASE_URL}/testimonials`);
@@ -335,136 +458,8 @@ async function addTestimonialAPI(text) {
   }
 }
 
-async function getProductReviews(productId) {
-  try {
-    const response = await fetch(`${BASE_URL}/reviews/${productId}`);
-    const responseJson = await response.json();
+// --- HERO SLIDES (DIPERBAIKI) ---
 
-    if (responseJson.status !== 'success') {
-      return { error: true, data: [] };
-    }
-    return { error: false, data: responseJson.data };
-  } catch (error) {
-    console.error("Get reviews error:", error);
-    return { error: true, data: [] };
-  }
-}
-
-async function addReview({ productId, orderId, rating, comment }) {
-  try {
-    const response = await fetchWithToken(`${BASE_URL}/reviews`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId, orderId, rating, comment }),
-    });
-    const responseJson = await response.json();
-
-    if (responseJson.status !== 'success') {
-      // Kita kembalikan pesan error dari backend (misal: "Anda belum membeli...")
-      return { error: true, message: responseJson.message };
-    }
-    return { error: false, data: responseJson.data };
-  } catch (error) {
-    console.error("Add review error:", error);
-    return { error: true, message: "Gagal terhubung ke server" };
-  }
-}
-
-// --- ADMIN REVIEW ---
-async function getAllReviewsAdmin() {
-  try {
-    const response = await fetchWithToken(`${BASE_URL}/reviews`);
-    const responseJson = await response.json();
-
-    if (responseJson.status !== 'success') {
-      return { error: true, data: [] };
-    }
-    return { error: false, data: responseJson.data };
-  } catch (error) {
-    console.error("Get admin reviews error:", error);
-    return { error: true, data: [] };
-  }
-}
-
-async function deleteReview(id) {
-  try {
-    const response = await fetchWithToken(`${BASE_URL}/reviews/${id}`, {
-      method: 'DELETE',
-    });
-    const responseJson = await response.json();
-
-    if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true };
-    }
-    return { error: false };
-  } catch (error) {
-    console.error("Delete review error:", error);
-    return { error: true };
-  }
-}
-
-// --- PASSWORD RESET (BARU) ---
-
-async function forgotPassword(email) {
-  try {
-    const response = await fetch(`${BASE_URL}/auth/forgot-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const responseJson = await response.json();
-
-    if (responseJson.status !== 'success') {
-      return { error: true, message: responseJson.message };
-    }
-    return { error: false, message: responseJson.message };
-  } catch (error) {
-    console.error("Forgot password error:", error);
-    return { error: true, message: "Gagal terhubung ke server" };
-  }
-}
-
-async function resetPassword(token, newPassword) {
-  try {
-    const response = await fetch(`${BASE_URL}/auth/reset-password/${token}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newPassword }),
-    });
-    const responseJson = await response.json();
-
-    if (responseJson.status !== 'success') {
-      return { error: true, message: responseJson.message };
-    }
-    return { error: false, message: responseJson.message };
-  } catch (error) {
-    console.error("Reset password error:", error);
-    return { error: true, message: "Gagal terhubung ke server" };
-  }
-}
-
-// --- USER PROFILE (BARU) ---
-async function updateProfile(profileData) {
-  try {
-    const response = await fetchWithToken(`${BASE_URL}/auth/profile`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(profileData),
-    });
-    const responseJson = await response.json();
-
-    if (responseJson.status !== 'success') {
-      return { error: true, message: responseJson.message };
-    }
-    return { error: false, data: responseJson.data, message: responseJson.message };
-  } catch (error) {
-    console.error("Update profile error:", error);
-    return { error: true, message: "Gagal terhubung ke server" };
-  }
-}
-
-// --- HERO SLIDES (BARU) ---
 async function getHeroSlides() {
   try {
     const response = await fetch(`${BASE_URL}/hero`);
@@ -488,6 +483,7 @@ async function addHeroSlide(slideData) {
     if (responseJson.status !== 'success') return { error: true, message: responseJson.message };
     return { error: false };
   } catch (error) {
+    console.error("Add hero slide error:", error); // <-- PERBAIKAN: Gunakan variabel error
     return { error: true, message: "Gagal koneksi" };
   }
 }
@@ -499,6 +495,7 @@ async function deleteHeroSlide(id) {
     if (responseJson.status !== 'success') return { error: true };
     return { error: false };
   } catch (error) {
+    console.error("Delete hero slide error:", error); // <-- PERBAIKAN: Gunakan variabel error
     return { error: true };
   }
 }
@@ -509,6 +506,9 @@ export {
   login, 
   register, 
   getUserLogged,
+  updateProfile,
+  forgotPassword,
+  resetPassword,
   getProducts,
   getProductById,
   addProduct,
@@ -517,18 +517,15 @@ export {
   uploadImage,
   createOrder,
   getMyOrders,
-  getAllOrders,      // <-- Baru
+  getAllOrders,
   updateOrderStatus,
   getDashboardStats,
-  getAllTestimonials, // <-- EXPORT BARU
-  addTestimonialAPI,
-  getProductReviews, // <-- Baru
+  getProductReviews,
   addReview,
-  getAllReviewsAdmin, // <-- Baru
+  getAllReviewsAdmin,
   deleteReview,
-  forgotPassword, // <-- Baru
-  resetPassword,
-  updateProfile,
+  getAllTestimonials,
+  addTestimonialAPI,
   getHeroSlides,
   addHeroSlide,
   deleteHeroSlide
