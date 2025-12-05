@@ -8,6 +8,7 @@ const Testimonial = require('./Testimonial');
 const Review = require('./Review');
 const Hero = require('./Hero');
 const PaymentMethod = require('./PaymentMethod');
+const Subscriber = require('./Subscriber');
 
 // Relasi Product <-> Variant (PENTING)
 Product.hasMany(Variant, { foreignKey: 'productId', onDelete: 'CASCADE' });
@@ -53,5 +54,6 @@ module.exports = {
     Testimonial,
     Review,
     Hero,
-    PaymentMethod   
+    PaymentMethod,
+    Subscriber
 };

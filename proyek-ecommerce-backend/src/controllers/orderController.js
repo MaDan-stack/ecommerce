@@ -1,5 +1,5 @@
-const { Order, OrderItem, Variant, sequelize } = require('../models'); // Pastikan import sequelize/db benar
-const db = require('../config/database'); // Ambil instance sequelize dari config
+const { Order, OrderItem, Variant, sequelize } = require('../models');
+const db = require('../config/database'); 
 
 const orderController = {
     createOrder: async (req, res) => {
@@ -108,8 +108,8 @@ const orderController = {
             }
 
             // 1. Ambil query param (page & limit)
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10; // Default 10 per halaman
+            const page = Number.parseInt(req.query.page) || 1;
+            const limit = Number.parseInt(req.query.limit) || 10; // Default 10 per halaman
             const offset = (page - 1) * limit;
 
             // 2. Gunakan findAndCountAll (Ambil data + Hitung total)
@@ -118,7 +118,7 @@ const orderController = {
                 order: [['createdAt', 'DESC']],
                 limit: limit,
                 offset: offset,
-                distinct: true // Penting agar count akurat saat ada include
+                distinct: true // agar count akurat saat ada include
             });
 
             // 3. Hitung total halaman

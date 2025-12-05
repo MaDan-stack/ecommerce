@@ -19,6 +19,7 @@ const testimonialRoutes = require('./src/routes/testimonials');
 const reviewRoutes = require('./src/routes/reviews');
 const heroRoutes = require('./src/routes/hero');
 const paymentRoutes = require('./src/routes/payments');
+const newsletterRoutes = require('./src/routes/newsletter');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -61,6 +62,7 @@ app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/hero', heroRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 
 const startServer = async () => {
     try {
