@@ -1,163 +1,205 @@
-import React, { useState, useEffect } from 'react';
-import { getAllOrders, updateOrderStatus } from '../../utils/api';
-import { formatPrice } from '../../utils/formatters';
-import { FaEye } from 'react-icons/fa'; // Hapus FaCheckCircle, FaClock (S1128)
+import React, { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CartContext } from '../contexts/CartContext';
+import { AuthContext } from '../contexts/AuthContext';
+import { formatPrice } from '../utils/formatters';
+// PERBAIKAN: Path "../utils/api" (satu titik dua) dan fungsi createOrder
+import { createOrder } from '../utils/api'; 
 import toast from 'react-hot-toast';
-import ViewPaymentModal from '../../components/ui/ViewPaymentModal';
 
-const AdminOrderList = () => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+const CheckoutPage = () => {
+  const { cartItems, total, clearCart } = useContext(CartContext);
+  const { authedUser } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  // State Form Data
+  const [name, setName] = useState(authedUser ? authedUser.name : '');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    const { error, data } = await getAllOrders();
-    // Perbaikan Logika Negasi (S7735)
-    if (error) {
-        toast.error("Gagal memuat data pesanan.");
-    } else {
-        setOrders(data);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!name || !address || !phone) {
+      toast.error("Harap lengkapi Nama, Nomor HP, dan Alamat pengiriman.");
+      return;
     }
+
+    if (cartItems.length === 0) {
+      toast.error("Keranjang belanja kosong.");
+      return;
+    }
+
+    setLoading(true);
+
+    // 1. Siapkan data sesuai format Backend
+    const orderData = {
+      items: cartItems,
+      totalAmount: total,
+      shippingAddress: address,
+      contactName: name,
+      contactPhone: phone
+    };
+
+    // 2. Kirim ke API
+    const { error, data } = await createOrder(orderData);
+
+    if (error) {
+      toast.error("Gagal membuat pesanan. Silakan coba lagi.");
+    } else {
+      toast.success("Pesanan berhasil dibuat!");
+      clearCart();
+      
+      // Redirect ke halaman pembayaran
+      if (data?.orderId) {
+        navigate(`/payment/${data.orderId}`);
+      } else {
+        navigate('/orders');
+      }
+    }
+
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const handleViewProof = (order) => {
-    if (!order.paymentProof) {
-        toast.error("User belum mengupload bukti bayar.");
-        return;
-    }
-    setSelectedOrder(order);
-    setIsModalOpen(true);
-  };
-
-  const handleStatusUpdate = async (id, newStatus) => {
-    setActionLoading(true);
-    const { error } = await updateOrderStatus(id, newStatus);
-    
-    // Perbaikan Logika Negasi (S7735)
-    if (error) {
-        toast.error("Gagal update status.");
-    } else {
-        toast.success(`Status berhasil diubah ke: ${newStatus}`);
-        setOrders((prev) => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
-        setIsModalOpen(false);
-    }
-    setActionLoading(false);
-  };
-
-  // Helper function untuk mengatasi Nested Ternary (S3358)
-  const getStatusClassName = (status) => {
-    switch (status) {
-        case 'awaiting_verification':
-            return 'bg-orange-100 text-orange-700 border-orange-200 focus:ring-orange-300';
-        case 'pending':
-            return 'bg-yellow-100 text-yellow-700 border-yellow-200 focus:ring-yellow-300';
-        case 'paid':
-            return 'bg-blue-100 text-blue-700 border-blue-200 focus:ring-blue-300';
-        case 'completed':
-            return 'bg-green-100 text-green-700 border-green-200 focus:ring-green-300';
-        case 'shipped': // Tambahkan case untuk shipped
-             return 'bg-indigo-100 text-indigo-700 border-indigo-200 focus:ring-indigo-300';
-        case 'cancelled': // Tambahkan case untuk cancelled
-             return 'bg-red-100 text-red-700 border-red-200 focus:ring-red-300';     
-        default:
-            return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
-
-  if (loading) return <p className="p-8 text-center">Memuat pesanan...</p>;
+  // Tampilan jika keranjang kosong
+  if (cartItems.length === 0) {
+    return (
+      <div className="container py-20 text-center min-h-[60vh] flex flex-col justify-center items-center">
+        <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Keranjang Kosong</h1>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">
+          Anda belum menambahkan produk apa pun.
+        </p>
+        <button 
+          onClick={() => navigate('/products')}
+          className="bg-orange-500 text-white px-8 py-3 rounded-full font-bold hover:bg-orange-600 transition duration-300 shadow-lg"
+        >
+          Mulai Belanja
+        </button>
+      </div>
+    )
+  }
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6 text-gray-800 dark:text-white">Kelola Pesanan</h1>
-
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border dark:border-gray-700">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-200 border-b dark:border-gray-600 text-sm uppercase">
-            <tr>
-              <th className="p-4">ID</th>
-              <th className="p-4">Pelanggan</th>
-              <th className="p-4">Total</th>
-              <th className="p-4">Bukti Bayar</th>
-              <th className="p-4">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y dark:divide-gray-700">
-            {orders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                <td className="p-4 text-sm font-medium">#{order.id}</td>
-                <td className="p-4">
-                    <p className="font-bold text-gray-800 dark:text-white">{order.contactName}</p>
-                    <p className="text-xs text-gray-500">{order.contactPhone}</p>
-                </td>
-                <td className="p-4 font-bold text-orange-500">
-                  {formatPrice(order.totalAmount)}
-                </td>
-                
-                <td className="p-4">
-                    {order.paymentProof ? (
-                        <button 
-                            onClick={() => handleViewProof(order)}
-                            className="flex items-center gap-1 text-xs bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full font-bold hover:bg-blue-200 transition"
-                        >
-                            <FaEye /> Lihat Bukti
-                        </button>
-                    ) : (
-                        <span className="text-xs text-gray-400 italic">Belum ada</span>
-                    )}
-                </td>
-
-                <td className="p-4">
-                  <div className="relative">
-                    <select 
-                        value={order.status}
-                        onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
-                        // Menggunakan helper function
-                        className={`appearance-none px-4 py-2 pr-8 rounded-lg text-xs font-bold uppercase cursor-pointer border focus:ring-2 focus:outline-none transition w-full ${getStatusClassName(order.status)}`}
-                        disabled={actionLoading}
-                    >
-                        <option value="pending">Pending</option>
-                        <option value="awaiting_verification">Cek Bukti</option>
-                        <option value="paid">Lunas (Paid)</option>
-                        <option value="shipped">Dikirim</option>
-                        <option value="completed">Selesai</option>
-                        <option value="cancelled">Batal</option>
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
-                        ▼
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
+      <div className="container mx-auto px-4">
+        <h1 className="text-3xl font-bold text-center mb-10 text-gray-900 dark:text-white">
+          Checkout Pesanan
+        </h1>
         
-        {orders.length === 0 && (
-            <div className="p-8 text-center text-gray-500">Belum ada pesanan masuk.</div>
-        )}
-      </div>
+        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+          
+          {/* --- KOLOM KIRI: FORM PENGIRIMAN --- */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 h-fit">
+            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
+              Data Pengiriman
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="name" className="block mb-2 font-medium text-sm text-gray-700 dark:text-gray-300">Nama Penerima</label>
+                <input 
+                  id="name"
+                  type="text" 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition"
+                  placeholder="Nama Lengkap"
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label htmlFor="phone" className="block mb-2 font-medium text-sm text-gray-700 dark:text-gray-300">Nomor WhatsApp / HP</label>
+                <input 
+                  id="phone"
+                  type="tel" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)} 
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition"
+                  placeholder="08xxxxxxxxxx"
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label htmlFor="address" className="block mb-2 font-medium text-sm text-gray-700 dark:text-gray-300">Alamat Lengkap</label>
+                <textarea 
+                  id="address"
+                  value={address} 
+                  onChange={(e) => setAddress(e.target.value)} 
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition resize-none"
+                  rows="4"
+                  placeholder="Nama Jalan, No. Rumah, Kecamatan, Kota, Kode Pos..."
+                  disabled={loading}
+                ></textarea>
+              </div>
+            </form>
+          </div>
 
-      {selectedOrder && (
-        <ViewPaymentModal 
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            proofUrl={selectedOrder.paymentProof}
-            isLoading={actionLoading}
-            onApprove={() => handleStatusUpdate(selectedOrder.id, 'paid')}
-            onReject={() => handleStatusUpdate(selectedOrder.id, 'pending')}
-        />
-      )}
+          {/* --- KOLOM KANAN: RINGKASAN PESANAN --- */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 h-fit sticky top-24">
+            <h2 className="text-xl font-semibold mb-6 pb-4 border-b border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white">
+              Ringkasan Pesanan
+            </h2>
+            
+            <ul className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+              {cartItems.map(item => (
+                <li key={item.id} className="flex justify-between items-start gap-4">
+                  <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <img src={item.product.img} alt={item.product.title} className="w-16 h-16 object-cover rounded-lg border dark:border-gray-600" />
+                        <span className="absolute -top-2 -right-2 bg-gray-900 dark:bg-gray-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                            {item.quantity}
+                        </span>
+                      </div>
+                      <div>
+                          <p className="font-medium text-gray-800 dark:text-gray-200 line-clamp-1 text-sm">{item.product.title}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Size: {item.variant.size}</p>
+                      </div>
+                  </div>
+                  <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm whitespace-nowrap">
+                      {formatPrice(item.variant.price * item.quantity)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            <div className="border-t border-dashed border-gray-300 dark:border-gray-600 pt-4 space-y-3">
+              <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(total)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm">
+                  <span>Biaya Pengiriman</span>
+                  <span className="text-green-500 font-medium">Gratis</span>
+              </div>
+              <div className="flex justify-between font-bold text-xl mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white">
+                <span>Total Bayar</span>
+                <span className="text-orange-500">{formatPrice(total)}</span>
+              </div>
+            </div>
+
+            <button 
+              onClick={handleSubmit} 
+              disabled={loading}
+              className="w-full mt-8 bg-gradient-to-r from-orange-500 to-red-500 text-white py-3.5 rounded-xl font-bold hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  <span>Memproses...</span>
+                </>
+              ) : (
+                'Bayar Sekarang'
+              )}
+            </button>
+            
+            <p className="text-xs text-center text-gray-400 mt-4">
+              🔒 Pembayaran Aman & Terenkripsi
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default AdminOrderList;
+export default CheckoutPage;
