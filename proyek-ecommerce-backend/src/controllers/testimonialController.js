@@ -47,6 +47,26 @@ const testimonialController = {
             console.error(error);
             res.status(500).json({ status: 'error', message: error.message });
         }
+    },
+    deleteTestimonial: async (req, res) => {
+        try {
+            // Pastikan yang menghapus adalah admin
+            if (req.user.role !== 'admin') {
+                return res.status(403).json({ status: 'fail', message: 'Akses ditolak' });
+            }
+
+            const { id } = req.params;
+            const deleted = await Testimonial.destroy({ where: { id } });
+
+            if (!deleted) {
+                return res.status(404).json({ status: 'fail', message: 'Testimoni tidak ditemukan' });
+            }
+
+            res.json({ status: 'success', message: 'Testimoni berhasil dihapus' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ status: 'error', message: error.message });
+        }
     }
 };
 

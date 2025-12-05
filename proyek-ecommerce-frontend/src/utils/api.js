@@ -1,4 +1,6 @@
-const BASE_URL = 'http://localhost:5000/api'; 
+// Gunakan Environment Variable untuk URL Backend.
+// Jika tidak ada (di localhost), default ke http://localhost:5000/api
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function getAccessToken() {
   return localStorage.getItem('accessToken');
@@ -30,14 +32,12 @@ async function register({ name, email, password }) {
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true };
+      return { error: true, message: responseJson.message };
     }
-    return { error: false };
+    return { error: false, message: responseJson.message };
   } catch (error) {
     console.error("Register error:", error);
-    alert('Gagal terhubung ke server');
-    return { error: true };
+    return { error: true, message: 'Gagal terhubung ke server' };
   }
 }
 
@@ -51,14 +51,12 @@ async function login({ email, password }) {
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true, data: null };
+      return { error: true, message: responseJson.message, data: null };
     }
     return { error: false, data: responseJson.data };
   } catch (error) {
     console.error("Login error:", error);
-    alert('Gagal terhubung ke server');
-    return { error: true };
+    return { error: true, message: 'Gagal terhubung ke server' };
   }
 }
 
@@ -182,14 +180,12 @@ async function addProduct(productData) {
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true };
+      return { error: true, message: responseJson.message };
     }
-    return { error: false };
+    return { error: false, message: 'Produk berhasil ditambahkan' };
   } catch (error) {
     console.error("Add product error:", error);
-    alert('Gagal terhubung ke server');
-    return { error: true };
+    return { error: true, message: 'Gagal terhubung ke server' };
   }
 }
 
@@ -201,13 +197,12 @@ async function deleteProduct(id) {
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true };
+      return { error: true, message: responseJson.message };
     }
-    return { error: false };
+    return { error: false, message: 'Produk berhasil dihapus' };
   } catch (error) {
     console.error("Delete product error:", error);
-    return { error: true };
+    return { error: true, message: 'Gagal menghapus produk' };
   }
 }
 
@@ -221,14 +216,12 @@ async function updateProduct(id, productData) {
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true };
+      return { error: true, message: responseJson.message };
     }
-    return { error: false };
+    return { error: false, message: 'Produk berhasil diperbarui' };
   } catch (error) {
     console.error("Update product error:", error);
-    alert('Gagal terhubung ke server');
-    return { error: true };
+    return { error: true, message: 'Gagal terhubung ke server' };
   }
 }
 
@@ -244,14 +237,12 @@ async function uploadImage(file) {
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true };
+      return { error: true, message: responseJson.message };
     }
     return { error: false, url: responseJson.data.imageUrl };
   } catch (error) {
     console.error("Upload image error:", error);
-    alert('Gagal upload gambar');
-    return { error: true };
+    return { error: true, message: 'Gagal upload gambar' };
   }
 }
 
@@ -270,15 +261,13 @@ async function createOrder(orderData) {
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true };
+      return { error: true, message: responseJson.message };
     }
     
     return { error: false, data: responseJson.data };
   } catch (error) {
     console.error("Create order error:", error);
-    alert('Gagal memproses pesanan. Cek koneksi server.');
-    return { error: true };
+    return { error: true, message: 'Gagal memproses pesanan' };
   }
 }
 
@@ -297,40 +286,47 @@ async function getMyOrders() {
   }
 }
 
-async function getAllOrders() {
+async function getAllOrders(page = 1) {
   try {
-    const response = await fetchWithToken(`${BASE_URL}/orders`); 
+    // Kirim query param page
+    const response = await fetchWithToken(`${BASE_URL}/orders?page=${page}&limit=10`); 
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      return { error: true, data: [] };
+      return { error: true, data: [], pagination: {} };
     }
-    return { error: false, data: responseJson.data.orders };
+    // Kembalikan data orders DAN info pagination
+    return { 
+        error: false, 
+        data: responseJson.data.orders, 
+        pagination: responseJson.data.pagination 
+    };
   } catch (error) {
     console.error("Get all orders error:", error);
-    return { error: true, data: [] };
+    return { error: true, data: [], pagination: {} };
   }
 }
 
-async function updateOrderStatus(id, status) {
+async function updateOrderStatus(id, status, trackingNumber = null) {
   try {
+    const payload = { status };
+    if (trackingNumber) payload.trackingNumber = trackingNumber;
+
     const response = await fetchWithToken(`${BASE_URL}/orders/${id}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(payload),
     });
 
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true };
+      return { error: true, message: responseJson.message };
     }
-    return { error: false };
+    return { error: false, message: 'Status berhasil diperbarui' };
   } catch (error) {
     console.error("Update status error:", error);
-    alert('Gagal update status');
-    return { error: true };
+    return { error: true, message: 'Gagal update status' };
   }
 }
 
@@ -410,13 +406,12 @@ async function deleteReview(id) {
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true };
+      return { error: true, message: responseJson.message };
     }
     return { error: false };
   } catch (error) {
     console.error("Delete review error:", error);
-    return { error: true };
+    return { error: true, message: "Gagal menghapus review" };
   }
 }
 
@@ -447,14 +442,12 @@ async function addTestimonialAPI(text) {
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
-      alert(responseJson.message);
-      return { error: true };
+      return { error: true, message: responseJson.message };
     }
     return { error: false, data: responseJson.data };
   } catch (error) {
     console.error("Add testimonial error:", error);
-    alert('Gagal terhubung ke server');
-    return { error: true };
+    return { error: true, message: 'Gagal terhubung ke server' };
   }
 }
 
@@ -569,6 +562,23 @@ async function deletePaymentMethod(id) {
   }
 }
 
+async function deleteTestimonial(id) {
+  try {
+    const response = await fetchWithToken(`${BASE_URL}/testimonials/${id}`, {
+      method: 'DELETE',
+    });
+    const responseJson = await response.json();
+
+    if (responseJson.status !== 'success') {
+      return { error: true, message: responseJson.message };
+    }
+    return { error: false };
+  } catch (error) {
+    console.error("Delete testimonial error:", error);
+    return { error: true, message: "Gagal menghapus testimoni" };
+  }
+}
+
 export { 
   getAccessToken, 
   putAccessToken, 
@@ -601,5 +611,6 @@ export {
   uploadPaymentProof,
   getPaymentMethods,
   addPaymentMethod,
-  deletePaymentMethod
+  deletePaymentMethod,
+  deleteTestimonial
 };

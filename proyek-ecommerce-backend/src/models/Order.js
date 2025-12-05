@@ -22,7 +22,10 @@ const Order = db.define('orders', {
         type: DataTypes.STRING,
         allowNull: true
     },
-    // -------------------------------
+    trackingNumber: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     shippingAddress: {
         type: DataTypes.TEXT,
         allowNull: false

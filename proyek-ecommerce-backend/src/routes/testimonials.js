@@ -6,7 +6,10 @@ const verifyToken = require('../middleware/authMiddleware');
 // Public: Semua orang bisa lihat
 router.get('/', testimonialController.getAllTestimonials);
 
-// Private: Hanya user login bisa posting
+// Private: User login bisa posting
 router.post('/', verifyToken, testimonialController.createTestimonial);
+
+// Admin: Hapus Testimoni (BARU)
+router.delete('/:id', verifyToken, testimonialController.deleteTestimonial);
 
 module.exports = router;

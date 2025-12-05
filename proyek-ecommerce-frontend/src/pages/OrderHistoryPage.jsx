@@ -4,7 +4,7 @@ import { formatPrice } from '../utils/formatters';
 import { Link } from 'react-router-dom';
 import ReviewModal from '../components/ui/ReviewModal';
 import PaymentModal from '../components/ui/PaymentModal';
-import { FaUpload, FaStar, FaClock, FaCheckCircle } from 'react-icons/fa'; // Import kembali FaClock & FaCheckCircle karena dipakai di helper
+import { FaUpload, FaStar, FaClock, FaCheckCircle, FaPrint, FaBox } from 'react-icons/fa'; // Tambah FaPrint & FaBox
 
 const OrderHistoryPage = () => {
   const [orders, setOrders] = useState([]);
@@ -46,7 +46,7 @@ const OrderHistoryPage = () => {
     fetchOrders();
   };
 
-  // Helper untuk Warna Badge (Mengatasi Nested Ternary)
+  // Helper untuk Warna Badge
   const getStatusBadge = (status) => {
     const styles = {
       completed: 'bg-green-100 text-green-700 border border-green-200',
@@ -63,6 +63,7 @@ const OrderHistoryPage = () => {
   const getStatusLabel = (status) => {
     if (status === 'awaiting_verification') return <><FaClock /> Menunggu Verifikasi</>;
     if (status === 'pending') return 'Belum Bayar';
+    if (status === 'shipped') return <><FaBox /> Dikirim</>;
     return status;
   };
 
@@ -98,15 +99,18 @@ const OrderHistoryPage = () => {
                     <p className="text-xs text-gray-400 mt-1">
                       {new Date(order.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
+                    {/* Tampilkan Resi jika ada */}
+                    {order.trackingNumber && (
+                        <p className="text-xs text-indigo-500 mt-1 font-bold">Resi: {order.trackingNumber}</p>
+                    )}
                   </div>
                   
-                  {/* Badge Status (Refactored) */}
                   <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${getStatusBadge(order.status)}`}>
                     {getStatusLabel(order.status)}
                   </span>
                 </div>
 
-                {/* Daftar Item (Perbaikan Optional Chaining) */}
+                {/* Daftar Item */}
                 <div className="p-4">
                   {order?.order_items?.map((item) => (
                     <div key={item.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 border-b dark:border-gray-700 last:border-0 gap-4">
@@ -138,26 +142,41 @@ const OrderHistoryPage = () => {
                         <p className="text-lg font-bold text-orange-500">{formatPrice(order.totalAmount)}</p>
                     </div>
 
-                    {order.status === 'pending' && (
-                        <button 
-                            onClick={() => handleOpenPayment(order.id)}
-                            className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 shadow-md transition flex items-center justify-center gap-2"
+                    {/* Group Tombol Aksi */}
+                    <div className="flex flex-wrap justify-center gap-3">
+                        
+                        {/* Tombol Cetak Struk (Selalu Muncul) */}
+                        <Link 
+                            to={`/invoice/${order.id}`} 
+                            target="_blank" 
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-500 transition text-sm"
                         >
-                            <FaUpload /> Upload Bukti Bayar
-                        </button>
-                    )}
-                    
-                    {order.status === 'awaiting_verification' && (
-                        <div className="text-sm text-orange-600 bg-orange-50 px-4 py-2 rounded-lg border border-orange-100 flex items-center gap-2">
-                            <FaClock /> Bukti sedang diverifikasi admin.
-                        </div>
-                    )}
+                            <FaPrint /> Struk
+                        </Link>
 
-                    {['paid', 'shipped', 'completed'].includes(order.status) && (
-                        <div className="text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg border border-green-100 flex items-center gap-2">
-                            <FaCheckCircle /> Pembayaran Diterima
-                        </div>
-                    )}
+                        {/* Tombol Upload (Hanya kalau Pending) */}
+                        {order.status === 'pending' && (
+                            <button 
+                                onClick={() => handleOpenPayment(order.id)}
+                                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md transition flex items-center gap-2 text-sm"
+                            >
+                                <FaUpload /> Bayar
+                            </button>
+                        )}
+                        
+                        {/* Info Status Lain */}
+                        {order.status === 'awaiting_verification' && (
+                            <span className="text-sm text-orange-600 bg-orange-100 px-3 py-2 rounded-lg border border-orange-200 flex items-center gap-2">
+                                <FaClock /> Sedang Diverifikasi
+                            </span>
+                        )}
+
+                        {['paid', 'completed'].includes(order.status) && (
+                            <span className="text-sm text-green-600 bg-green-100 px-3 py-2 rounded-lg border border-green-200 flex items-center gap-2">
+                                <FaCheckCircle /> Lunas
+                            </span>
+                        )}
+                    </div>
                 </div>
               </div>
             ))}

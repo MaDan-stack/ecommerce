@@ -15,26 +15,25 @@ import AdminLayout from "./components/layout/AdminLayout";
 import { CartContext } from "./contexts/CartContext";
 import CartSidebar from "./components/ui/CartSidebar";
 
-// --- LAZY IMPORT (Code Splitting) ---
+// --- LAZY IMPORT ---
 
-// Halaman User - Umum
+// Halaman User
 const HomePage = React.lazy(() => import("./pages/HomePage"));
 const ProductsPage = React.lazy(() => import("./pages/ProductsPage"));
 const ProductDetailPage = React.lazy(() => import("./pages/ProductDetailPage"));
 const SearchPage = React.lazy(() => import("./pages/SearchPage"));
 const NotFoundPage = React.lazy(() => import("./pages/NotFoundPage"));
-
-// Halaman User - Auth
 const LoginPage = React.lazy(() => import("./pages/LoginPage"));
 const RegisterPage = React.lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = React.lazy(() => import("./pages/ResetPasswordPage"));
-
-// Halaman User - Terproteksi (Login Required)
 const UserProfilePage = React.lazy(() => import("./pages/UserProfilePage"));
 const CheckoutPage = React.lazy(() => import("./pages/CheckoutPage"));
 const OrderHistoryPage = React.lazy(() => import("./pages/OrderHistoryPage"));
-const PaymentPage = React.lazy(() => import("./pages/PaymentPage")); // <-- Halaman Baru
+const PaymentPage = React.lazy(() => import("./pages/PaymentPage"));
+
+// Halaman Khusus (Invoice) - BARU
+const InvoicePage = React.lazy(() => import("./pages/InvoicePage")); 
 
 // Halaman Admin
 const AdminDashboard = React.lazy(() => import("./pages/admin/AdminDashboard"));
@@ -105,7 +104,15 @@ const App = () => {
             <Route path="payments" element={<AdminPaymentSettings />} />
           </Route>
 
-          {/* --- RUTE USER --- */}
+          {/* --- RUTE INVOICE (Diluar Layout User agar Header/Footer tidak muncul) --- */}
+          {/* --- PERBAIKAN: Tambahkan route ini --- */}
+          <Route path="/invoice/:id" element={
+            <ProtectedRoute>
+              <InvoicePage />
+            </ProtectedRoute>
+          } />
+
+          {/* --- RUTE USER (Dengan Header & Footer) --- */}
           <Route path="*" element={
             <>
               <Header />
@@ -124,7 +131,7 @@ const App = () => {
                     <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                     <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
-                    {/* Halaman Terproteksi (Wajib Login) */}
+                    {/* Halaman Terproteksi */}
                     <Route path="/profile" element={
                       <ProtectedRoute>
                         <UserProfilePage />
@@ -143,7 +150,6 @@ const App = () => {
                       </ProtectedRoute>
                     } />
 
-                    {/* Rute Pembayaran (BARU) */}
                     <Route path="/payment/:id" element={
                       <ProtectedRoute>
                         <PaymentPage />

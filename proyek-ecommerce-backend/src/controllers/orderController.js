@@ -106,11 +106,36 @@ const orderController = {
             if (req.user.role !== 'admin') {
                 return res.status(403).json({ status: 'fail', message: 'Akses ditolak' });
             }
-            const orders = await Order.findAll({
+
+            // 1. Ambil query param (page & limit)
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10; // Default 10 per halaman
+            const offset = (page - 1) * limit;
+
+            // 2. Gunakan findAndCountAll (Ambil data + Hitung total)
+            const { count, rows } = await Order.findAndCountAll({
                 include: [ { model: OrderItem } ],
-                order: [['createdAt', 'DESC']]
+                order: [['createdAt', 'DESC']],
+                limit: limit,
+                offset: offset,
+                distinct: true // Penting agar count akurat saat ada include
             });
-            res.json({ status: 'success', data: { orders } });
+
+            // 3. Hitung total halaman
+            const totalPages = Math.ceil(count / limit);
+
+            res.json({ 
+                status: 'success', 
+                data: { 
+                    orders: rows,
+                    pagination: {
+                        totalItems: count,
+                        totalPages: totalPages,
+                        currentPage: page,
+                        itemsPerPage: limit
+                    }
+                } 
+            });
         } catch (error) {
             console.error(error);
             res.status(500).json({ status: 'error', message: 'Gagal mengambil data pesanan' });
@@ -125,7 +150,7 @@ const orderController = {
             }
 
             const { id } = req.params;
-            const { status } = req.body; // status baru: 'shipped', 'completed', dll
+            const { status, trackingNumber } = req.body; // Ambil trackingNumber
 
             const order = await Order.findByPk(id);
             if (!order) {
@@ -133,6 +158,12 @@ const orderController = {
             }
 
             order.status = status;
+            
+            // Jika status dikirim, simpan resi
+            if (status === 'shipped' && trackingNumber) {
+                order.trackingNumber = trackingNumber;
+            }
+
             await order.save();
 
             res.json({

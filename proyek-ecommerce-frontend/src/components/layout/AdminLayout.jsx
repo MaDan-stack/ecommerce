@@ -1,9 +1,18 @@
 import React, { useContext } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
-// --- PERBAIKAN: Tambahkan FaClipboardList ke dalam import ---
-// Pastikan FaImages ada di dalam kurung kurawal
-import { FaChartLine, FaBoxOpen, FaWallet, FaSignOutAlt, FaHome, FaClipboardList, FaImages, FaCommentDots } from 'react-icons/fa';
+// PERBAIKAN: Menggabungkan semua import icon menjadi satu baris
+import { 
+  FaComments, 
+  FaChartLine, 
+  FaBoxOpen, 
+  FaWallet, 
+  FaSignOutAlt, 
+  FaHome, 
+  FaClipboardList, 
+  FaImages, 
+  FaCommentDots 
+} from 'react-icons/fa';
 import Logo from "../../assets/logo.png";
 
 const AdminLayout = () => {
@@ -38,19 +47,23 @@ const AdminLayout = () => {
           </Link>
 
           <Link to="/admin/payments" className={linkClass('/admin/payments')}>
-    <FaWallet /> Metode Pembayaran
-</Link>
+            <FaWallet /> Metode Pembayaran
+          </Link>
 
           <Link to="/admin/products" className={linkClass('/admin/products')}>
             <FaBoxOpen /> Kelola Produk
           </Link>
 
           <Link to="/admin/hero" className={linkClass('/admin/hero')}>
-    <FaImages /> Kelola Hero {/* Import FaImages dulu */}
-</Link>
+            <FaImages /> Kelola Hero
+          </Link>
 
           <Link to="/admin/reviews" className={linkClass('/admin/reviews')}>
             <FaCommentDots /> Moderasi Ulasan
+          </Link>
+          
+          <Link to="/admin/testimonials" className={linkClass('/admin/testimonials')}>
+            <FaComments /> Kelola Testimoni
           </Link>
           
           <div className="my-4 border-t dark:border-gray-700"></div>
