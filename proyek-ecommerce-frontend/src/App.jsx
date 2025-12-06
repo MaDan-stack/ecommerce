@@ -44,6 +44,7 @@ const AdminOrderList = React.lazy(() => import("./pages/admin/AdminOrderList"));
 const AdminHeroPage = React.lazy(() => import("./pages/admin/AdminHeroPage"));
 const AdminReviewList = React.lazy(() => import("./pages/admin/AdminReviewList"));
 const AdminPaymentSettings = React.lazy(() => import("./pages/admin/AdminPaymentSettings"));
+const AdminTestimonialList = React.lazy(() => import("./pages/admin/AdminTestimonialList"));
 const AdminSubscriberList = React.lazy(() => import("./pages/admin/AdminSubscriberList"));
 
 // Komponen Loading
@@ -104,6 +105,7 @@ const App = () => {
             <Route path="reviews" element={<AdminReviewList />} />
             <Route path="payments" element={<AdminPaymentSettings />} />
             <Route path="subscribers" element={<AdminSubscriberList />} />
+            <Route path="testimonials" element={<AdminTestimonialList />} />
           </Route>
 
           {/* --- RUTE INVOICE (Diluar Layout User agar Header/Footer tidak muncul) --- */}

@@ -5,9 +5,10 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import './index.css';
 import App from './App.jsx';
-import { CartProvider } from './contexts/CartProvider'; 
-import { AuthProvider } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+
+import { CartProvider } from './contexts/CartProvider';  
+import { AuthProvider } from './contexts/AuthProvider';   
+import { ThemeProvider } from './contexts/ThemeProvider';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
