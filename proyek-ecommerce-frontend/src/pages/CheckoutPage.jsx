@@ -1,15 +1,15 @@
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CartContext } from '../contexts/CartContext';
-import { AuthContext } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
+import { useAuth } from "../contexts/AuthContext";
 import { formatPrice } from '../utils/formatters';
 // PERBAIKAN: Path "../utils/api" (satu titik dua) dan fungsi createOrder
 import { createOrder } from '../utils/api'; 
 import toast from 'react-hot-toast';
 
 const CheckoutPage = () => {
-  const { cartItems, total, clearCart } = useContext(CartContext);
-  const { authedUser } = useContext(AuthContext);
+  const { cartItems, total, clearCart } = useCart();
+  const { authedUser } = useAuth();
   const navigate = useNavigate();
 
   // State Form Data

@@ -1,11 +1,11 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { AuthContext } from '../contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from "../contexts/AuthContext";
 import { updateProfile } from '../utils/api';
 import toast from 'react-hot-toast';
 import { FaUser, FaLock, FaSave } from 'react-icons/fa';
 
 const UserProfilePage = () => {
-  const { authedUser } = useContext(AuthContext);
+  const { authedUser } = useAuth();
   
   // State Form
   const [name, setName] = useState('');

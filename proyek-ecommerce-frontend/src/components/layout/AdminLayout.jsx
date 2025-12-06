@@ -1,6 +1,5 @@
-import React, { useContext } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { AuthContext } from '../../contexts/AuthContext';
+import { useAuth } from "../../contexts/AuthContext";
 // PERBAIKAN: Menggabungkan semua import icon menjadi satu baris
 import { 
   FaComments, 
@@ -11,12 +10,13 @@ import {
   FaHome, 
   FaClipboardList, 
   FaImages, 
-  FaCommentDots 
+  FaCommentDots,
+  FaUsers
 } from 'react-icons/fa';
 import Logo from "../../assets/logo.png";
 
 const AdminLayout = () => {
-  const { logout } = useContext(AuthContext);
+  const { logout } = useAuth();
   const location = useLocation();
 
   const isActive = (path) => location.pathname === path;
@@ -57,6 +57,10 @@ const AdminLayout = () => {
           <Link to="/admin/hero" className={linkClass('/admin/hero')}>
             <FaImages /> Kelola Hero
           </Link>
+
+          <Link to="/admin/subscribers" className={linkClass('/admin/subscribers')}>
+    <FaUsers /> Data Subscriber
+</Link>
 
           <Link to="/admin/reviews" className={linkClass('/admin/reviews')}>
             <FaCommentDots /> Moderasi Ulasan

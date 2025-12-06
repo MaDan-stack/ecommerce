@@ -16,10 +16,11 @@ const SearchPage = () => {
       if (query) {
         const { error, data } = await getProducts({ title: query });
         
-        if (!error) {
-          setProducts(data);
-        } else {
+        // Perbaikan S7735: Membalik logika if agar tidak dinegasikan
+        if (error) {
           setProducts([]);
+        } else {
+          setProducts(data);
         }
       } else {
         setProducts([]);
@@ -30,8 +31,43 @@ const SearchPage = () => {
     fetchSearchResults();
   }, [query]);
 
+  // Perbaikan S3358: Memisahkan logika render dari JSX utama
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-40">
+          <p className="text-gray-500 animate-pulse">Mencari produk...</p>
+        </div>
+      );
+    }
+
+    if (products.length > 0) {
+      return (
+        <div className="flex flex-wrap justify-center gap-6">
+          {products.map((product, index) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              aosDelay={`${index * 100}`}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="text-center py-10 bg-gray-100 dark:bg-gray-800 rounded-lg">
+        <p className="text-xl text-gray-600 dark:text-gray-300 font-semibold">
+          Tidak ada produk yang ditemukan.
+        </p>
+        <p className="text-gray-500 mt-2">
+          Coba gunakan kata kunci lain yang lebih umum.
+        </p>
+      </div>
+    );
+  };
+
   return (
-    // Tambahkan 'mx-auto' dan 'px-4' pada container agar tidak mepet layar
     <div className="container mx-auto px-4 py-12 min-h-[60vh]">
       <div className="text-center mb-10">
         <h1 data-aos="fade-up" className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -42,31 +78,7 @@ const SearchPage = () => {
         </p>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-40">
-          <p className="text-gray-500 animate-pulse">Mencari produk...</p>
-        </div>
-      ) : products.length > 0 ? (
-        // PERBAIKAN: Gunakan 'flex' dan 'justify-center' agar kartu rata tengah
-        <div className="flex flex-wrap justify-center gap-6">
-          {products.map((product, index) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              aosDelay={`${index * 100}`}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-10 bg-gray-100 dark:bg-gray-800 rounded-lg">
-          <p className="text-xl text-gray-600 dark:text-gray-300 font-semibold">
-            Tidak ada produk yang ditemukan.
-          </p>
-          <p className="text-gray-500 mt-2">
-            Coba gunakan kata kunci lain yang lebih umum.
-          </p>
-        </div>
-      )}
+      {renderContent()}
     </div>
   );
 };

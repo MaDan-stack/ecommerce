@@ -1,78 +1,13 @@
-import React, { createContext, useState, useMemo, useEffect } from 'react';
-import PropTypes from 'prop-types';
-import { getUserLogged, putAccessToken, login as apiLogin, register as apiRegister } from '../utils/api';
+import { createContext, useContext } from 'react';
 
-// eslint-disable-next-line react-refresh/only-export-components
+// 1. Buat Context
 export const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [authedUser, setAuthedUser] = useState(null);
-  const [initializing, setInitializing] = useState(true);
-
-  useEffect(() => {
-    async function checkLoginStatus() {
-      try {
-        const { data } = await getUserLogged();
-        if (data) {
-          setAuthedUser(data);
-        }
-      } catch (error) {
-        // Token invalid/expired      
-      } finally {
-        setInitializing(false);
-      }
-    }
-    checkLoginStatus();
-  }, []);
-
-  const login = async ({ email, password }) => {
-    const { error, data } = await apiLogin({ email, password });
-    
-    if (!error) {
-      putAccessToken(data.accessToken);
-      
-      // Ambil data user
-      const userResponse = await getUserLogged();
-      
-      // --- PERBAIKAN: Cek apakah userResponse.data ada ---
-      if (!userResponse.error && userResponse.data) {
-        setAuthedUser(userResponse.data);
-        return { error: false, role: userResponse.data.role };
-      }
-    }
-    
-    return { error: true };
-  };
-
-  const logout = () => {
-    setAuthedUser(null);
-    putAccessToken('');
-  };
-
-  const register = async (userData) => {
-    const { error } = await apiRegister(userData);
-    return { error };
-  };
-
-  const authContextValue = useMemo(() => ({
-    authedUser,
-    initializing,
-    login,
-    logout,
-    register,
-  }), [authedUser, initializing]);
-
-  if (initializing) {
-      return null;
+// 2. Buat Custom Hook
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth harus digunakan di dalam AuthProvider');
   }
-
-  return (
-    <AuthContext.Provider value={authContextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-AuthProvider.propTypes = {
-  children: PropTypes.node.isRequired,
+  return context;
 };

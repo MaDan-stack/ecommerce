@@ -288,14 +288,12 @@ async function getMyOrders() {
 
 async function getAllOrders(page = 1) {
   try {
-    // Kirim query param page
     const response = await fetchWithToken(`${BASE_URL}/orders?page=${page}&limit=10`); 
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
       return { error: true, data: [], pagination: {} };
     }
-    // Kembalikan data orders DAN info pagination
     return { 
         error: false, 
         data: responseJson.data.orders, 
@@ -451,6 +449,68 @@ async function addTestimonialAPI(text) {
   }
 }
 
+async function deleteTestimonial(id) {
+  try {
+    const response = await fetchWithToken(`${BASE_URL}/testimonials/${id}`, {
+      method: 'DELETE',
+    });
+    const responseJson = await response.json();
+
+    if (responseJson.status !== 'success') {
+      return { error: true, message: responseJson.message };
+    }
+    return { error: false };
+  } catch (error) {
+    console.error("Delete testimonial error:", error);
+    return { error: true, message: "Gagal menghapus testimoni" };
+  }
+}
+
+// --- NEWSLETTER ---
+
+async function subscribeNewsletter(email) {
+  try {
+    const response = await fetch(`${BASE_URL}/newsletter/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const responseJson = await response.json();
+    
+    if (responseJson.status !== 'success') {
+      return { error: true, message: responseJson.message };
+    }
+    return { error: false, message: responseJson.message };
+  } catch (error) {
+    console.error("Subscribe error:", error);
+    return { error: true, message: "Gagal koneksi ke server" };
+  }
+}
+
+async function getSubscribers() {
+  try {
+    const response = await fetchWithToken(`${BASE_URL}/newsletter`);
+    const responseJson = await response.json();
+    if (responseJson.status !== 'success') return { error: true, data: [] };
+    return { error: false, data: responseJson.data };
+  } catch (error) {
+    console.error("Get subscribers error:", error);
+    return { error: true, data: [] };
+  }
+}
+
+async function deleteSubscriber(id) {
+  try {
+    const response = await fetchWithToken(`${BASE_URL}/newsletter/${id}`, { method: 'DELETE' });
+    const responseJson = await response.json();
+    if (responseJson.status !== 'success') return { error: true };
+    return { error: false };
+  } catch (error) {
+    console.error("Delete subscriber error:", error);
+    return { error: true };
+  }
+}
+
 // --- HERO SLIDES ---
 
 async function getHeroSlides() {
@@ -528,6 +588,7 @@ async function getPaymentMethods() {
     if (responseJson.status !== 'success') return { error: true, data: [] };
     return { error: false, data: responseJson.data };
   } catch (error) {
+    // Perbaikan: Log error agar tidak unused
     console.error("Get payment methods error:", error);
     return { error: true, data: [] };
   }
@@ -545,6 +606,7 @@ async function addPaymentMethod(formData) {
     if (responseJson.status !== 'success') return { error: true, message: responseJson.message };
     return { error: false };
   } catch (error) {
+    // Perbaikan: Log error
     console.error("Add payment method error:", error);
     return { error: true, message: "Gagal koneksi" };
   }
@@ -557,25 +619,9 @@ async function deletePaymentMethod(id) {
     if (responseJson.status !== 'success') return { error: true };
     return { error: false };
   } catch (error) {
+    // Perbaikan: Log error
     console.error("Delete payment method error:", error);
     return { error: true };
-  }
-}
-
-async function deleteTestimonial(id) {
-  try {
-    const response = await fetchWithToken(`${BASE_URL}/testimonials/${id}`, {
-      method: 'DELETE',
-    });
-    const responseJson = await response.json();
-
-    if (responseJson.status !== 'success') {
-      return { error: true, message: responseJson.message };
-    }
-    return { error: false };
-  } catch (error) {
-    console.error("Delete testimonial error:", error);
-    return { error: true, message: "Gagal menghapus testimoni" };
   }
 }
 
@@ -605,12 +651,15 @@ export {
   deleteReview,
   getAllTestimonials,
   addTestimonialAPI,
+  deleteTestimonial,
+  subscribeNewsletter,
+  getSubscribers,
+  deleteSubscriber,
   getHeroSlides,
   addHeroSlide,
   deleteHeroSlide,
   uploadPaymentProof,
   getPaymentMethods,
   addPaymentMethod,
-  deletePaymentMethod,
-  deleteTestimonial
+  deletePaymentMethod
 };

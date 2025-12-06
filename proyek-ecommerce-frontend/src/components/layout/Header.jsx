@@ -1,11 +1,11 @@
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Logo from "../../assets/logo.png";
 import DarkMode from "../ui/DarkMode.jsx";
 import { IoMdSearch } from "react-icons/io";
 import { FaShoppingCart, FaCaretDown, FaUserCircle, FaSignOutAlt, FaChartLine, FaHistory } from "react-icons/fa";
-import { CartContext } from "../../contexts/CartContext";
-import { AuthContext } from "../../contexts/AuthContext";
+import { useCart } from "../../contexts/CartContext"; // Ganti Import
+import { useAuth } from "../../contexts/AuthContext"; // Ganti Import
 
 const Menu = [
   { id: 1, name: "Home", link: "/" },
@@ -20,8 +20,8 @@ const DropdownLinks = [
 ];
 
 const Header = () => {
-  const { toggleCart, cartItems } = useContext(CartContext);
-  const { authedUser, logout } = useContext(AuthContext);
+  const { toggleCart, cartItems } = useCart(); // Gunakan Hook
+  const { authedUser, logout } = useAuth(); // Gunakan Hook
   const itemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const navigate = useNavigate();
@@ -51,12 +51,10 @@ const Header = () => {
 
   return (
     <div className="shadow-md bg-white dark:bg-gray-900 dark:text-white duration-200 z-40 sticky top-0">
-      {/* Upper Navbar */}
       <div className="bg-orange-200/40 py-2 flex justify-center items-center">
         <div className="container flex justify-between items-center">
           <Link to="/" className="font-bold text-2xl sm:text-3xl flex gap-2 items-center">
             <img src={Logo} alt="LokalStyle Logo" className="w-10" />
-            {/* PERBAIKAN 1: Bungkus teks 'LokalStyle' dengan span */}
             <span>LokalStyle</span>
           </Link>
 
@@ -133,12 +131,10 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Lower Navbar (MENU UTAMA) */}
       <div data-aos className="flex justify-center">
         <ul className="sm:flex hidden items-center gap-4 py-2">
           {Menu.map((data) => {
             const isActive = checkActive(data.link);
-            
             return (
               <li key={data.id}>
                 <Link
@@ -156,10 +152,8 @@ const Header = () => {
             );
           })}
           
-          {/* Dropdown Kategori */}
           <li className="group relative cursor-pointer">
             <button className="flex items-center gap-1 hover:text-orange-500 py-2 transition-all duration-200 relative">
-              {/* PERBAIKAN 2: Bungkus teks 'Kategori' dengan span */}
               <span>Kategori</span>
               <span>
                 <FaCaretDown className="transition-all duration-200 group-hover:rotate-180" />

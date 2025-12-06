@@ -1,13 +1,13 @@
-import React, { useContext, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { IoCloseOutline } from "react-icons/io5";
 import { FaTrash } from "react-icons/fa";
 import PropTypes from 'prop-types';
-import { CartContext } from '../../contexts/CartContext';
+import { useCart } from "../../contexts/CartContext";
 import { formatPrice } from '../../utils/formatters';
 
 const CartSidebar = ({ isOpen, toggleCart }) => {
-  const { cartItems, removeFromCart, updateQuantity, total } = useContext(CartContext);
+  const { cartItems, removeFromCart, updateQuantity, total } = useCart();
   const dialogRef = useRef(null);
 
   // Efek untuk membuka/menutup dialog secara programatik

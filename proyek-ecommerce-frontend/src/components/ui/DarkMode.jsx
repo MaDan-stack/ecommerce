@@ -1,11 +1,10 @@
-import React, { useContext } from "react";
-import { ThemeContext } from "../../contexts/ThemeContext"; // 1. Impor Context
+import { useTheme } from "../../contexts/ThemeContext";
 import LightButton from "../../assets/website/light-mode-button.png";
 import DarkButton from "../../assets/website/dark-mode-button.png";
 
 const DarkMode = () => {
   // 2. Ambil state dan fungsi dari context
-  const { theme, toggleTheme } = useContext(ThemeContext);
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="relative">
