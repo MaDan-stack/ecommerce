@@ -45,7 +45,7 @@ const InvoicePage = () => {
         
         // Beri jeda sedikit agar rendering HTML selesai sempurna sebelum dialog print muncul
         const timer = setTimeout(() => {
-            window.print();
+            globalThis.print();
         }, 800);
 
         return () => clearTimeout(timer);
@@ -145,7 +145,7 @@ const InvoicePage = () => {
       
       {/* Tombol Print Manual */}
       <button 
-        onClick={() => window.print()} 
+        onClick={() => globalThis.print()} 
         className="print:hidden fixed bottom-8 right-8 bg-blue-600 text-white px-8 py-4 rounded-full shadow-xl font-bold hover:bg-blue-700 transition transform hover:scale-105 flex items-center gap-2"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
