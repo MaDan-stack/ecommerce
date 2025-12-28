@@ -1,15 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const reviewController = require('../controllers/reviewController');
-const verifyToken = require('../middleware/authMiddleware');
+// PERBAIKAN: Import verifyToken DAN adminOnly
+const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
 
-// Public: Melihat review suatu produk
+// Public: Melihat review
 router.get('/:productId', reviewController.getProductReviews);
 
-// Private: Memberi review (Wajib Login)
+// Private: Memberi review
 router.post('/', verifyToken, reviewController.addReview);
 
-router.get('/', verifyToken, reviewController.getAllReviewsAdmin); // GET /api/reviews (Admin only)
-router.delete('/:id', verifyToken, reviewController.deleteReview); // DELETE /api/reviews/:id
+// Admin: Lihat semua review (Wajib adminOnly)
+router.get('/', verifyToken, adminOnly, reviewController.getAllReviewsAdmin); 
+
+// Admin: Hapus review (Wajib adminOnly)
+router.delete('/:id', verifyToken, adminOnly, reviewController.deleteReview);
 
 module.exports = router;

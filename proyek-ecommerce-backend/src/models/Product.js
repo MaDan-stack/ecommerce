@@ -20,8 +20,22 @@ const Product = db.define('products', {
         allowNull: false
     },
     img: {
-        type: DataTypes.STRING, // URL Gambar (Cloudinary)
-        allowNull: false
+        // PERUBAHAN: Menggunakan JSON untuk menyimpan Array URL gambar
+        type: DataTypes.JSON, 
+        allowNull: false,
+        defaultValue: [],
+        get() {
+            // Helper: Memastikan output selalu Array, meskipun di database tersimpan sebagai string
+            const rawValue = this.getDataValue('img');
+            if (typeof rawValue === 'string') {
+                try {
+                    return JSON.parse(rawValue);
+                } catch (e) {
+                    return [rawValue];
+                }
+            }
+            return rawValue;
+        }
     },
     rating: {
         type: DataTypes.FLOAT,
@@ -33,15 +47,14 @@ const Product = db.define('products', {
     }
 }, {
     freezeTableName: true,
-    // --- OPTIMASI: MENAMBAHKAN INDEX ---
     indexes: [
         {
-            name: 'product_category_index', // Nama index (bebas)
-            fields: ['category']            // Mempercepat filter kategori
+            name: 'product_category_index',
+            fields: ['category']
         },
         {
             name: 'product_title_index',
-            fields: ['title']               // Mempercepat pencarian nama
+            fields: ['title']
         }
     ]
 });

@@ -1,6 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from "../../contexts/AuthContext";
-// PERBAIKAN: Menggabungkan semua import icon menjadi satu baris
 import { 
   FaComments, 
   FaChartLine, 
@@ -59,8 +58,8 @@ const AdminLayout = () => {
           </Link>
 
           <Link to="/admin/subscribers" className={linkClass('/admin/subscribers')}>
-    <FaUsers /> Data Subscriber
-</Link>
+            <FaUsers /> Data Subscriber
+          </Link>
 
           <Link to="/admin/reviews" className={linkClass('/admin/reviews')}>
             <FaCommentDots /> Moderasi Ulasan

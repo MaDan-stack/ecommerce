@@ -1,47 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getProductById, updateProduct, uploadImage } from '../../utils/api';
-import { FaSave, FaPlus, FaTrash, FaArrowLeft, FaLink, FaImage } from 'react-icons/fa';
+import { getProductById, updateProduct } from '../../utils/api';
+import { FaSave, FaPlus, FaTrash, FaArrowLeft, FaCloudUploadAlt, FaTimes } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 
 const AdminEditProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
+  // State Data Produk
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('men');
   const [description, setDescription] = useState('');
-  const [img, setImg] = useState('');
-  const [imgMode, setImgMode] = useState('url');
-  const [previewImg, setPreviewImg] = useState('');
   
+  // State Gambar
+  const [existingImages, setExistingImages] = useState([]); 
+  const [newImages, setNewImages] = useState([]); 
+  const [newPreviews, setNewPreviews] = useState([]); 
+
+  // State Varian
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
 
-  // Fetch Data Produk
+  // --- 1. FETCH DATA SAAT LOAD ---
   useEffect(() => {
     const fetchProduct = async () => {
+      setLoading(true);
       const { error, data } = await getProductById(id);
       
       if (!error && data) {
         setTitle(data.title);
         setCategory(data.category);
         setDescription(data.description);
-        setImg(data.img);
-        setPreviewImg(data.img);
         
-        // Map data varian dari DB ke state
+        // Handle Gambar Lama
+        let imgs = [];
+        if (Array.isArray(data.img)) {
+            imgs = data.img;
+        } else if (typeof data.img === 'string') {
+             try {
+                const parsed = JSON.parse(data.img);
+                imgs = Array.isArray(parsed) ? parsed : [data.img];
+             } catch {
+                imgs = [data.img];
+             }
+        }
+        setExistingImages(imgs);
+        
+        // Handle Varian
         const variantsWithId = (data.variants || []).map(v => ({
           ...v,
           _id: v.id || Date.now() + Math.random(),
-          // Mapping kolom dari DB (sleeveLength) ke state (sleeve) jika perlu
-          // Pastikan nama field konsisten, di sini saya pakai sleeve
           sleeve: v.sleeveLength || '' 
         }));
         
         setVariants(variantsWithId.length > 0 ? variantsWithId : [{ _id: Date.now(), size: '', price: '', stock: '', length: '', width: '', sleeve: '' }]);
       } else {
-        alert("Gagal mengambil data produk.");
+        toast.error("Gagal mengambil data produk.");
         navigate('/admin/products');
       }
       setLoading(false);
@@ -50,31 +65,49 @@ const AdminEditProduct = () => {
     fetchProduct();
   }, [id, navigate]);
 
-  // --- Handlers (Sama seperti AddProduct) ---
-  const handleImageModeChange = (mode) => {
-    setImgMode(mode);
-  };
+  // --- 2. HANDLERS GAMBAR (PERBAIKAN DI SINI) ---
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setIsUploading(true);
-      const result = await uploadImage(file);
-      if (!result.error && result.url) {
-        setImg(result.url); 
-        setPreviewImg(result.url);
-      } else {
-        e.target.value = null;
-        alert("Gagal upload gambar");
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const incomingFiles = Array.from(e.target.files);
+      
+      // PERBAIKAN: Gabungkan file yang sudah ada di state (newImages) + file yang baru dipilih
+      const combinedFiles = [...newImages, ...incomingFiles];
+
+      // Validasi Maksimal 5 Gambar Baru Total
+      if (combinedFiles.length > 5) {
+        toast.error("Maksimal 5 gambar baru yang diperbolehkan.");
       }
-      setIsUploading(false);
+
+      // Ambil 5 file pertama saja
+      const limitedFiles = combinedFiles.slice(0, 5);
+      
+      setNewImages(limitedFiles);
+
+      // Generate Previews ulang untuk semua file yang ada di list
+      const previews = limitedFiles.map(file => URL.createObjectURL(file));
+      setNewPreviews(previews);
+
+      // Reset input value agar user bisa memilih file yang sama lagi jika tidak sengaja menghapus
+      e.target.value = null; 
     }
   };
 
-  const handleUrlChange = (e) => {
-    setImg(e.target.value);
-    setPreviewImg(e.target.value);
+  const removeNewImage = (index) => {
+    // Hapus file dari state berdasarkan index
+    const updatedFiles = newImages.filter((_, i) => i !== index);
+    const updatedPreviews = newPreviews.filter((_, i) => i !== index);
+    
+    setNewImages(updatedFiles);
+    setNewPreviews(updatedPreviews);
   };
+
+  const removeExistingImage = (index) => {
+    const updated = existingImages.filter((_, i) => i !== index);
+    setExistingImages(updated);
+  };
+
+  // --- 3. HANDLERS VARIAN ---
 
   const handleVariantChange = (index, field, value) => {
     const newVariants = [...variants];
@@ -93,11 +126,19 @@ const AdminEditProduct = () => {
     }
   };
 
+  // --- 4. SUBMIT FORM ---
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !description || !img) {
-      alert("Mohon lengkapi data produk.");
+
+    if (!title || !description) {
+      toast.error("Nama dan Deskripsi wajib diisi.");
       return;
+    }
+
+    if (existingImages.length === 0 && newImages.length === 0) {
+        toast.error("Produk harus memiliki minimal 1 gambar.");
+        return;
     }
 
     setLoading(true);
@@ -108,138 +149,187 @@ const AdminEditProduct = () => {
         stock: Number(v.stock) || 0,
         length: Number(v.length) || 0,
         width: Number(v.width) || 0,
-        sleeveLength: Number(v.sleeve) || 0 // Mapping ke backend
+        sleeveLength: Number(v.sleeve) || 0
     }));
 
-    const updatedData = {
-      title,
-      category,
-      description,
-      img,
-      variants: cleanVariants
-    };
+    let payload; 
+
+    if (newImages.length > 0) {
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('category', category);
+        formData.append('description', description);
+        formData.append('variants', JSON.stringify(cleanVariants));
+        formData.append('existingImages', JSON.stringify(existingImages));
+
+        newImages.forEach(file => {
+            formData.append('images', file);
+        });
+        
+        payload = formData;
+    } else {
+        payload = {
+            title,
+            category,
+            description,
+            existingImages: JSON.stringify(existingImages),
+            img: existingImages, 
+            variants: cleanVariants
+        };
+    }
 
     try {
-        const { error } = await updateProduct(id, updatedData);
+        const { error } = await updateProduct(id, payload);
         if (!error) {
-            alert("Produk berhasil diperbarui!");
+            toast.success("Produk berhasil diperbarui!");
             navigate('/admin/products');
+        } else {
+            toast.error("Gagal memperbarui produk.");
         }
     } catch (err) {
         console.error(err);
-        alert("Gagal memperbarui produk.");
+        toast.error("Terjadi kesalahan sistem.");
     } finally {
         setLoading(false);
     }
   };
 
-  if (loading) return <p className="p-8 text-center">Memuat data...</p>;
+  if (loading) return <div className="flex justify-center items-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div></div>;
 
   return (
-    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md">
+    <div className="max-w-5xl mx-auto p-4 md:p-8">
       <div className="flex items-center gap-4 mb-8">
-        <button onClick={() => navigate('/admin/products')} className="text-gray-500 hover:text-orange-500">
+        <button onClick={() => navigate('/admin/products')} className="p-2 bg-white dark:bg-gray-700 rounded-full shadow hover:bg-gray-100 transition text-gray-600 dark:text-gray-200">
             <FaArrowLeft />
         </button>
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Edit Produk</h1>
       </div>
       
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Informasi Dasar */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium mb-2">Nama Produk</label>
-            <input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600" disabled={loading}/>
-          </div>
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium mb-2">Kategori</label>
-            <select id="category" value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600" disabled={loading}>
-              <option value="men">Pria</option>
-              <option value="women">Wanita</option>
-              <option value="kids">Anak-anak</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Gambar */}
-        <div className="border p-4 rounded-lg dark:border-gray-600 bg-gray-50 dark:bg-gray-700/30">
-            <p className="block text-sm font-medium mb-3">Gambar Produk</p>
-            <div className="flex gap-4 mb-4">
-                <button type="button" onClick={() => handleImageModeChange('url')} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-colors ${imgMode === 'url' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-600'}`}>
-                    <FaLink /> URL Gambar
-                </button>
-                <button type="button" onClick={() => handleImageModeChange('file')} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-colors ${imgMode === 'file' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-600'}`}>
-                    <FaImage /> Upload File
-                </button>
-            </div>
-            {imgMode === 'url' ? (
-                <div>
-                  <label htmlFor="image-url" className="sr-only">URL</label>
-                  <input id="image-url" type="text" value={img || ''} onChange={handleUrlChange} className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600" disabled={loading}/>
-                </div>
-            ) : (
-                <div>
-                  <label htmlFor="image-file" className="sr-only">File</label>
-                  <input id="image-file" type="file" accept="image/*" onChange={handleFileChange} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 bg-white" disabled={loading || isUploading}/>
-                </div>
-            )}
-            {previewImg && <img src={previewImg} alt="Preview" className="mt-4 h-32 object-contain rounded-md border bg-white" />}
-        </div>
-
-        {/* Deskripsi */}
-        <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-2">Deskripsi</label>
-            <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows="4" className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600" disabled={loading}></textarea>
-        </div>
-
-        {/* Varian */}
-        <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg border dark:border-gray-600">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Varian</h3>
-                <button type="button" onClick={addVariantField} className="text-sm text-orange-500 flex items-center gap-1 hover:underline" disabled={loading}><FaPlus /> Tambah</button>
-            </div>
-            {variants.map((variant, index) => (
-                <div key={variant._id} className="mb-6 p-4 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 shadow-sm">
-                    {/* Baris 1 */}
-                    <div className="flex gap-4 mb-3">
-                        <div className="w-1/3">
-                            <label className="block text-xs mb-1 font-semibold">Ukuran</label>
-                            <input type="text" value={variant.size || ''} onChange={(e) => handleVariantChange(index, 'size', e.target.value)} className="w-full p-2 border rounded dark:bg-gray-700" disabled={loading} />
-                        </div>
-                        <div className="w-1/3">
-                            <label className="block text-xs mb-1 font-semibold">Harga</label>
-                            <input type="number" value={variant.price || ''} onChange={(e) => handleVariantChange(index, 'price', e.target.value)} className="w-full p-2 border rounded dark:bg-gray-700" disabled={loading} />
-                        </div>
-                        <div className="w-1/3">
-                            <label className="block text-xs mb-1 font-semibold">Stok</label>
-                            <input type="number" value={variant.stock || ''} onChange={(e) => handleVariantChange(index, 'stock', e.target.value)} className="w-full p-2 border rounded dark:bg-gray-700" disabled={loading} />
-                        </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* KOLOM KIRI */}
+        <div className="lg:col-span-2 space-y-6">
+            
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700">
+                <h2 className="text-xl font-semibold mb-4 dark:text-white border-b pb-2 dark:border-gray-700">Informasi Dasar</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Nama Produk</label>
+                        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white transition" />
                     </div>
-                    {/* Baris 2 */}
-                    <div className="flex gap-4 items-end">
-                        <div className="w-1/3">
-                            <label className="block text-xs mb-1 text-gray-500">Panjang</label>
-                            <input type="number" value={variant.length || ''} onChange={(e) => handleVariantChange(index, 'length', e.target.value)} className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-sm" placeholder="cm" disabled={loading} />
-                        </div>
-                        <div className="w-1/3">
-                            <label className="block text-xs mb-1 text-gray-500">Lebar</label>
-                            <input type="number" value={variant.width || ''} onChange={(e) => handleVariantChange(index, 'width', e.target.value)} className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-sm" placeholder="cm" disabled={loading} />
-                        </div>
-                        <div className="w-1/3">
-                            <label className="block text-xs mb-1 text-gray-500">Lengan</label>
-                            <input type="number" value={variant.sleeve || ''} onChange={(e) => handleVariantChange(index, 'sleeve', e.target.value)} className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-sm" placeholder="cm" disabled={loading} />
-                        </div>
-                        {variants.length > 1 && <button type="button" onClick={() => removeVariantField(index)} className="p-2 ml-2 text-red-500 hover:bg-red-100 rounded h-10 w-10 flex items-center justify-center" disabled={loading}><FaTrash /></button>}
+                    <div>
+                        <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Kategori</label>
+                        <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white transition">
+                            <option value="men">Pria</option>
+                            <option value="women">Wanita</option>
+                            <option value="kids">Anak-anak</option>
+                        </select>
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Deskripsi</label>
+                        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows="4" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white transition"></textarea>
                     </div>
                 </div>
-            ))}
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700">
+                <h2 className="text-xl font-semibold mb-4 dark:text-white border-b pb-2 dark:border-gray-700">Galeri Produk</h2>
+                
+                {existingImages.length > 0 && (
+                    <div className="mb-6">
+                        <p className="text-sm font-medium text-gray-500 mb-3">Gambar Saat Ini:</p>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                            {existingImages.map((src, idx) => (
+                                <div key={idx} className="relative group aspect-square">
+                                    <img src={src} alt={`Existing ${idx}`} className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-gray-600" />
+                                    <button type="button" onClick={() => removeExistingImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-md hover:bg-red-600 transition opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100">
+                                        <FaTrash size={12}/>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div>
+                    <p className="text-sm font-medium text-gray-500 mb-3">Upload Gambar Baru:</p>
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:border-gray-600 dark:hover:bg-gray-700 transition">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <FaCloudUploadAlt className="text-3xl text-gray-400 mb-2" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold">Klik untuk upload gambar</p>
+                            <p className="text-xs text-gray-400 mt-1">PNG, JPG (Maks 5 file)</p>
+                        </div>
+                        {/* INPUT FILE SUDAH MENDUKUNG MULTIPLE */}
+                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
+                    </label>
+                </div>
+
+                {newPreviews.length > 0 && (
+                    <div className="mt-6">
+                        <p className="text-sm font-medium text-green-600 mb-3 flex items-center gap-2">
+                             <span className="w-2 h-2 bg-green-500 rounded-full"></span> Akan Ditambahkan:
+                        </p>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                            {newPreviews.map((src, idx) => (
+                                <div key={idx} className="relative group aspect-square">
+                                    <img src={src} alt="New Preview" className="w-full h-full object-cover rounded-lg border-2 border-green-400" />
+                                    <button type="button" onClick={() => removeNewImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-md hover:bg-red-600 transition">
+                                        <FaTimes size={12}/>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
 
-        <div className="flex justify-end">
-            <button type="submit" disabled={loading} className="flex items-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-600 transition-colors disabled:opacity-50">
-                <FaSave /> {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </button>
+        {/* KOLOM KANAN: VARIAN */}
+        <div className="lg:col-span-1">
+             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700 sticky top-4">
+                <div className="flex justify-between items-center mb-4 border-b pb-2 dark:border-gray-700">
+                    <h2 className="text-xl font-semibold dark:text-white">Varian</h2>
+                    <button type="button" onClick={addVariantField} className="text-sm bg-orange-100 text-orange-600 px-3 py-1 rounded-full font-bold hover:bg-orange-200 transition flex items-center gap-1">
+                        <FaPlus size={10} /> Tambah
+                    </button>
+                </div>
+
+                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                    {variants.map((variant, index) => (
+                        <div key={variant._id} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-700/50 dark:border-gray-600 relative">
+                             {variants.length > 1 && (
+                                <button type="button" onClick={() => removeVariantField(index)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition">
+                                    <FaTimes />
+                                </button>
+                             )}
+                            
+                            <div className="mb-3">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Ukuran</label>
+                                <input type="text" value={variant.size} onChange={(e) => handleVariantChange(index, 'size', e.target.value)} className="w-full p-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Cth: XL" />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Harga</label>
+                                    <input type="number" value={variant.price} onChange={(e) => handleVariantChange(index, 'price', e.target.value)} className="w-full p-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Stok</label>
+                                    <input type="number" value={variant.stock} onChange={(e) => handleVariantChange(index, 'stock', e.target.value)} className="w-full p-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-6 pt-4 border-t dark:border-gray-700">
+                    <button type="submit" disabled={loading} className="w-full bg-orange-500 text-white py-3 rounded-lg font-bold hover:bg-orange-600 transition shadow-lg flex justify-center items-center gap-2">
+                        <FaSave /> {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+                    </button>
+                </div>
+             </div>
         </div>
+
       </form>
     </div>
   );

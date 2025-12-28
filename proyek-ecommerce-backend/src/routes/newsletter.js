@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { Subscriber } = require('../models');
-const verifyToken = require('../middleware/authMiddleware');
+// PERBAIKAN: Gunakan kurung kurawal {} dan import adminOnly
+const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
 
 // 1. PUBLIC: Subscribe (User)
 router.post('/subscribe', async (req, res) => {
@@ -17,17 +18,14 @@ router.post('/subscribe', async (req, res) => {
         await Subscriber.create({ email });
         res.status(201).json({ status: 'success', message: 'Berhasil berlangganan newsletter!' });
     } catch (error) {
-        // Perbaikan: Log error agar tidak "swallowed" (ditelan) begitu saja
         console.error("Newsletter subscribe error:", error);
         res.status(500).json({ status: 'error', message: 'Terjadi kesalahan server' });
     }
 });
 
-// 2. ADMIN: Get All Subscribers
-router.get('/', verifyToken, async (req, res) => {
+// 2. ADMIN: Get All Subscribers (Tambahkan adminOnly)
+router.get('/', verifyToken, adminOnly, async (req, res) => {
     try {
-        if (req.user.role !== 'admin') return res.status(403).json({ message: 'Akses ditolak' });
-
         const subscribers = await Subscriber.findAll({
             order: [['createdAt', 'DESC']]
         });
@@ -38,11 +36,9 @@ router.get('/', verifyToken, async (req, res) => {
     }
 });
 
-// 3. ADMIN: Delete Subscriber
-router.delete('/:id', verifyToken, async (req, res) => {
+// 3. ADMIN: Delete Subscriber (Tambahkan adminOnly)
+router.delete('/:id', verifyToken, adminOnly, async (req, res) => {
     try {
-        if (req.user.role !== 'admin') return res.status(403).json({ message: 'Akses ditolak' });
-
         const { id } = req.params;
         await Subscriber.destroy({ where: { id } });
         res.json({ status: 'success', message: 'Subscriber dihapus' });

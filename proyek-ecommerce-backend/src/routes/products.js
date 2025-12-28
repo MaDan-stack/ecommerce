@@ -1,16 +1,30 @@
 const express = require('express');
 const router = express.Router();
-const productController = require('../controllers/productController');
-const verifyToken = require('../middleware/authMiddleware');
 
-// Public Routes (Semua orang bisa akses)
-router.get('/', productController.getAllProducts);
-router.get('/:id', productController.getProductById);
+// 1. Import Controller dengan Destructuring (Agar addProduct terbaca)
+const { 
+    getAllProducts, 
+    getProductById, 
+    addProduct, 
+    editProduct, 
+    deleteProduct 
+} = require('../controllers/productController');
 
-// Protected Routes (Hanya Admin - butuh token)
-// Kita pasang middleware 'verifyToken' sebelum controller
-router.post('/', verifyToken, productController.addProduct);
-router.put('/:id', verifyToken, productController.editProduct);
-router.delete('/:id', verifyToken, productController.deleteProduct);
+// 2. Import Middleware Auth & AdminOnly (Pastikan adminOnly diimpor!)
+const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
+
+// 3. Import Middleware Upload (Wajib ada)
+const upload = require('../middleware/upload');
+
+// --- ROUTES ---
+
+// Public Routes
+router.get('/', getAllProducts);
+router.get('/:id', getProductById);
+
+// Protected Routes (Admin Only)
+router.post('/', verifyToken, adminOnly, upload.array('images', 5), addProduct);
+router.put('/:id', verifyToken, adminOnly, upload.array('images', 5), editProduct);
+router.delete('/:id', verifyToken, adminOnly, deleteProduct);
 
 module.exports = router;

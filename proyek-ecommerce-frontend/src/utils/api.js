@@ -171,12 +171,24 @@ async function getProductById(id) {
 }
 
 async function addProduct(productData) {
+  // Cek apakah data yang dikirim adalah FormData (untuk upload file)
+  const isFormData = productData instanceof FormData;
+
+  const options = {
+    method: 'POST',
+    body: isFormData ? productData : JSON.stringify(productData),
+    headers: {} 
+  };
+
+  // PENTING: Jika FormData, JANGAN set 'Content-Type'. 
+  // Browser akan otomatis menambahkannya beserta 'boundary'.
+  // Jika JSON, baru kita set manual.
+  if (!isFormData) {
+    options.headers['Content-Type'] = 'application/json';
+  }
+
   try {
-    const response = await fetchWithToken(`${BASE_URL}/products`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(productData),
-    });
+    const response = await fetchWithToken(`${BASE_URL}/products`, options);
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {
@@ -207,12 +219,20 @@ async function deleteProduct(id) {
 }
 
 async function updateProduct(id, productData) {
+  const isFormData = productData instanceof FormData;
+
+  const options = {
+    method: 'PUT', // Perhatikan method PUT
+    body: isFormData ? productData : JSON.stringify(productData),
+    headers: {}
+  };
+
+  if (!isFormData) {
+    options.headers['Content-Type'] = 'application/json';
+  }
+
   try {
-    const response = await fetchWithToken(`${BASE_URL}/products/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(productData),
-    });
+    const response = await fetchWithToken(`${BASE_URL}/products/${id}`, options);
     const responseJson = await response.json();
 
     if (responseJson.status !== 'success') {

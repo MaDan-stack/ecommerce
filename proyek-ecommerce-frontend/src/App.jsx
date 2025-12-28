@@ -15,8 +15,6 @@ import AdminLayout from "./components/layout/AdminLayout";
 import { CartContext } from "./contexts/CartContext";
 import CartSidebar from "./components/ui/CartSidebar";
 
-// --- LAZY IMPORT ---
-
 // Halaman User
 const HomePage = React.lazy(() => import("./pages/HomePage"));
 const ProductsPage = React.lazy(() => import("./pages/ProductsPage"));
@@ -32,7 +30,7 @@ const CheckoutPage = React.lazy(() => import("./pages/CheckoutPage"));
 const OrderHistoryPage = React.lazy(() => import("./pages/OrderHistoryPage"));
 const PaymentPage = React.lazy(() => import("./pages/PaymentPage"));
 
-// Halaman Khusus (Invoice) - BARU
+// Halaman Khusus
 const InvoicePage = React.lazy(() => import("./pages/InvoicePage")); 
 
 // Halaman Admin
@@ -108,8 +106,6 @@ const App = () => {
             <Route path="testimonials" element={<AdminTestimonialList />} />
           </Route>
 
-          {/* --- RUTE INVOICE (Diluar Layout User agar Header/Footer tidak muncul) --- */}
-          {/* --- PERBAIKAN: Tambahkan route ini --- */}
           <Route path="/invoice/:id" element={
             <ProtectedRoute>
               <InvoicePage />

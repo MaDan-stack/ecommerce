@@ -1,59 +1,54 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addProduct, uploadImage } from '../../utils/api';
-import { FaPlus, FaTrash, FaSave, FaLink, FaImage } from 'react-icons/fa';
+import { addProduct } from '../../utils/api'; // Hapus uploadImage
+import { FaPlus, FaTrash, FaSave, FaImage, FaTimes } from 'react-icons/fa'; // Hapus FaLink
 import toast from 'react-hot-toast';
 
 const AdminAddProduct = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  // Hapus isUploading dan setIsUploading karena tidak dipakai lagi
 
   // State Data Produk
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('men');
   const [description, setDescription] = useState('');
   
-  // State untuk Gambar
-  const [img, setImg] = useState('');
-  const [imgMode, setImgMode] = useState('url');
-  const [previewImg, setPreviewImg] = useState('');
+  // State untuk Gambar (Multiple)
+  const [images, setImages] = useState([]); 
+  const [previewImages, setPreviewImages] = useState([]);
+  // Hapus imgMode dan setImgMode karena defaultnya sekarang upload file semua
 
-  // State Varian (Updated: Tambah field length, width, sleeve)
+  // State Varian
   const [variants, setVariants] = useState([
     { _id: Date.now(), size: 'M', price: '', stock: '', length: '', width: '', sleeve: '' }
   ]);
 
-  // --- HANDLERS ---
+  // --- HANDLERS GAMBAR ---
 
-  const handleImageModeChange = (mode) => {
-    setImgMode(mode);
-    setImg('');
-    setPreviewImg('');
-  };
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setIsUploading(true);
-      const result = await uploadImage(file);
+  const handleFileChange = (e) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
       
-      if (!result.error && result.url) {
-        setImg(result.url); 
-        setPreviewImg(result.url);
-      } else {
-        e.target.value = null;
-        setImg('');
-        setPreviewImg('');
-      }
-      setIsUploading(false);
+      // Gabungkan dengan file yang sudah dipilih sebelumnya (maksimal 5 total)
+      const totalImages = [...images, ...filesArray].slice(0, 5);
+      setImages(totalImages);
+
+      // Buat URL preview untuk ditampilkan
+      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
+      setPreviewImages(prev => [...prev, ...newPreviews].slice(0, 5));
     }
   };
 
-  const handleUrlChange = (e) => {
-    setImg(e.target.value);
-    setPreviewImg(e.target.value);
+  const handleRemoveImage = (index) => {
+    const newImages = images.filter((_, i) => i !== index);
+    const newPreviews = previewImages.filter((_, i) => i !== index);
+    
+    setImages(newImages);
+    setPreviewImages(newPreviews);
   };
+
+  // --- HANDLERS VARIAN ---
 
   const handleVariantChange = (index, field, value) => {
     const newVariants = [...variants];
@@ -62,7 +57,6 @@ const AdminAddProduct = () => {
   };
 
   const addVariantField = () => {
-    // Updated: Tambah field baru saat varian baru dibuat
     setVariants([...variants, { 
       _id: Date.now(), 
       size: '', price: '', stock: '', 
@@ -77,43 +71,49 @@ const AdminAddProduct = () => {
     }
   };
 
+  // --- SUBMIT ---
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!title || !description || !img) {
-      alert("Mohon lengkapi nama, deskripsi, dan gambar produk.");
+    if (!title || !description || images.length === 0) {
+      toast.error("Mohon lengkapi nama, deskripsi, dan minimal 1 gambar.");
       return;
     }
 
     setLoading(true);
 
+    // 1. Siapkan FormData karena kita kirim File binary
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('category', category);
+    formData.append('description', description);
+
+    // Append Images (Looping karena array)
+    images.forEach((file) => {
+        formData.append('images', file);
+    });
+
+    // Append Variants (Stringify karena FormData tidak bisa kirim Array Object langsung)
     const cleanVariants = variants.map((v) => ({
         size: v.size || 'All Size',
         price: Number(v.price) || 0,
         stock: Number(v.stock) || 0,
-        // Mapping field baru ke format database
         length: Number(v.length) || 0,
         width: Number(v.width) || 0,
         sleeveLength: Number(v.sleeve) || 0
     }));
-
-    const newProduct = {
-      title,
-      category,
-      description,
-      img, 
-      rating: 0, 
-      reviewCount: 0,
-      variants: cleanVariants
-    };
+    formData.append('variants', JSON.stringify(cleanVariants));
 
     try {
-      const { error } = await addProduct(newProduct);
+      const { error } = await addProduct(formData);
       
       if (!error) {
-    toast.success("Produk berhasil disimpan!");
-    navigate('/admin/products');
-}
+        toast.success("Produk berhasil disimpan!");
+        navigate('/admin/products');
+      } else {
+        toast.error("Gagal menyimpan produk.");
+      }
     } catch (err) {
       console.error(err);
       toast.error("Terjadi kesalahan sistem.");
@@ -137,7 +137,7 @@ const AdminAddProduct = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-              placeholder="Contoh: Kemeja Flanel"
+              placeholder="Contoh: Celana Chino Slim Fit"
               disabled={loading}
             />
           </div>
@@ -157,46 +157,56 @@ const AdminAddProduct = () => {
           </div>
         </div>
 
-        {/* --- Gambar --- */}
+        {/* --- Gambar (Multi Upload) --- */}
         <div className="border p-4 rounded-lg dark:border-gray-600 bg-gray-50 dark:bg-gray-700/30">
-            <p className="block text-sm font-medium mb-3">Gambar Produk</p>
-            <div className="flex gap-4 mb-4">
-                <button type="button" onClick={() => handleImageModeChange('url')} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-colors ${imgMode === 'url' ? 'bg-orange-500 text-white' : 'bg-gray-200 dark:bg-gray-600'}`}>
-                    <FaLink /> URL Gambar
-                </button>
-                <button type="button" onClick={() => handleImageModeChange('file')} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-colors ${imgMode === 'file' ? 'bg-orange-500 text-white' : 'bg-gray-200 dark:bg-gray-600'}`}>
-                    <FaImage /> Upload File
-                </button>
-            </div>
-
-            {imgMode === 'url' ? (
-                <div>
-                  <label htmlFor="image-url" className="sr-only">URL Gambar</label>
+            <p className="block text-sm font-medium mb-3">Foto Produk (Maksimal 5)</p>
+            
+            {/* Area Upload */}
+            <div className="mb-4">
+               <label 
+                htmlFor="file-upload" 
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+               >
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <FaImage className="text-3xl text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <span className="font-semibold">Klik untuk upload</span> atau drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG (Max. 5 files)</p>
+                  </div>
                   <input 
-                    id="image-url"
-                    type="text" 
-                    value={img || ''} 
-                    onChange={handleUrlChange}
-                    className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                    placeholder="https://example.com/gambar.jpg"
+                    id="file-upload" 
+                    type="file" 
+                    multiple 
+                    className="hidden" 
+                    onChange={handleFileChange}
+                    accept="image/*"
                     disabled={loading}
                   />
-                </div>
-            ) : (
-                <div>
-                  <label htmlFor="image-file" className="sr-only">Upload File</label>
-                  <input 
-                    id="image-file"
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 bg-white"
-                    disabled={loading || isUploading}
-                  />
-                  {isUploading && <p className="text-sm text-orange-500 mt-2 animate-pulse">Sedang mengupload gambar ke server...</p>}
+               </label>
+            </div>
+
+            {/* Gallery Preview */}
+            {previewImages.length > 0 && (
+                <div className="grid grid-cols-5 gap-4">
+                    {previewImages.map((src, index) => (
+                        <div key={index} className="relative group">
+                            <img 
+                                src={src} 
+                                alt={`Preview ${index}`} 
+                                className="w-full h-24 object-cover rounded-lg border dark:border-gray-600" 
+                            />
+                            <button
+                                type="button"
+                                onClick={() => handleRemoveImage(index)}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition"
+                            >
+                                <FaTimes size={12} />
+                            </button>
+                        </div>
+                    ))}
                 </div>
             )}
-            {previewImg && <img src={previewImg} alt="Preview" className="mt-4 h-40 object-contain rounded-md border bg-white" />}
         </div>
 
         {/* Deskripsi */}
@@ -208,15 +218,15 @@ const AdminAddProduct = () => {
               onChange={(e) => setDescription(e.target.value)}
               rows="4"
               className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-              placeholder="Detail produk..."
+              placeholder="Detail produk, bahan, perawatan..."
               disabled={loading}
             ></textarea>
         </div>
 
-        {/* --- Varian Produk (Updated UI) --- */}
+        {/* --- Varian Produk --- */}
         <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg border dark:border-gray-600">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Varian</h3>
+                <h3 className="text-lg font-semibold">Varian & Stok</h3>
                 <button type="button" onClick={addVariantField} className="text-sm text-orange-500 flex items-center gap-1 hover:underline" disabled={loading}>
                     <FaPlus /> Tambah Ukuran
                 </button>
@@ -224,17 +234,16 @@ const AdminAddProduct = () => {
             
             {variants.map((variant, index) => (
                 <div key={variant._id} className="mb-6 p-4 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 shadow-sm">
-                    {/* Baris 1: Data Utama */}
+                    {/* Baris 1: Info Utama */}
                     <div className="flex gap-4 mb-3">
                         <div className="w-1/3">
-                            <label className="block text-xs mb-1 font-semibold">Ukuran</label>
+                            <label className="block text-xs mb-1 font-semibold">Ukuran (Size)</label>
                             <input 
                                 type="text" 
                                 value={variant.size || ''} 
                                 onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
                                 className="w-full p-2 border rounded dark:bg-gray-700" 
-                                placeholder="S, M..."
-                                disabled={loading}
+                                placeholder="30, 32, XL..."
                             />
                         </div>
                         <div className="w-1/3">
@@ -244,8 +253,7 @@ const AdminAddProduct = () => {
                                 value={variant.price || ''} 
                                 onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
                                 className="w-full p-2 border rounded dark:bg-gray-700" 
-                                placeholder="0"
-                                disabled={loading}
+                                placeholder="Harga..."
                             />
                         </div>
                         <div className="w-1/3">
@@ -255,56 +263,26 @@ const AdminAddProduct = () => {
                                 value={variant.stock || ''} 
                                 onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
                                 className="w-full p-2 border rounded dark:bg-gray-700" 
-                                placeholder="0"
-                                disabled={loading}
+                                placeholder="Qty..."
                             />
                         </div>
                     </div>
-
-                    {/* Baris 2: Detail Ukuran (Size Chart) */}
+                    {/* Baris 2: Detail Dimensi */}
                     <div className="flex gap-4 items-end">
-                        <div className="w-1/3">
-                            <label className="block text-xs mb-1 text-gray-500 dark:text-gray-400">Panjang (cm)</label>
-                            <input 
-                                type="number" 
-                                value={variant.length || ''} 
-                                onChange={(e) => handleVariantChange(index, 'length', e.target.value)}
-                                className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-sm" 
-                                placeholder="P"
-                                disabled={loading}
-                            />
+                         <div className="w-1/3">
+                            <label className="block text-xs mb-1 text-gray-500">Panjang (cm)</label>
+                            <input type="number" value={variant.length} onChange={(e) => handleVariantChange(index, 'length', e.target.value)} className="w-full p-2 border rounded bg-gray-50 text-sm" />
                         </div>
-                        <div className="w-1/3">
-                            <label className="block text-xs mb-1 text-gray-500 dark:text-gray-400">Lebar Dada (cm)</label>
-                            <input 
-                                type="number" 
-                                value={variant.width || ''} 
-                                onChange={(e) => handleVariantChange(index, 'width', e.target.value)}
-                                className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-sm" 
-                                placeholder="L"
-                                disabled={loading}
-                            />
+                         <div className="w-1/3">
+                            <label className="block text-xs mb-1 text-gray-500">Lebar (cm)</label>
+                            <input type="number" value={variant.width} onChange={(e) => handleVariantChange(index, 'width', e.target.value)} className="w-full p-2 border rounded bg-gray-50 text-sm" />
                         </div>
-                        <div className="w-1/3">
-                            <label className="block text-xs mb-1 text-gray-500 dark:text-gray-400">P. Lengan (cm)</label>
-                            <input 
-                                type="number" 
-                                value={variant.sleeve || ''} 
-                                onChange={(e) => handleVariantChange(index, 'sleeve', e.target.value)}
-                                className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-sm" 
-                                placeholder="PL"
-                                disabled={loading}
-                            />
+                         <div className="w-1/3">
+                            <label className="block text-xs mb-1 text-gray-500">P. Lengan (cm)</label>
+                            <input type="number" value={variant.sleeve} onChange={(e) => handleVariantChange(index, 'sleeve', e.target.value)} className="w-full p-2 border rounded bg-gray-50 text-sm" />
                         </div>
-                        
-                        {variants.length > 1 && (
-                            <button 
-                                type="button" 
-                                onClick={() => removeVariantField(index)} 
-                                className="p-2 ml-2 text-red-500 hover:bg-red-100 rounded h-10 w-10 flex items-center justify-center" 
-                                title="Hapus varian"
-                                disabled={loading}
-                            >
+                         {variants.length > 1 && (
+                            <button type="button" onClick={() => removeVariantField(index)} className="p-2 ml-2 text-red-500 hover:bg-red-100 rounded">
                                 <FaTrash />
                             </button>
                         )}
@@ -316,10 +294,10 @@ const AdminAddProduct = () => {
         <div className="flex justify-end">
             <button 
                 type="submit" 
-                disabled={loading || isUploading} 
+                disabled={loading} 
                 className="flex items-center gap-2 bg-orange-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-600 transition-colors disabled:opacity-50"
             >
-                <FaSave /> {isUploading ? 'Mengupload...' : (loading ? 'Menyimpan...' : 'Simpan Produk')}
+                <FaSave /> {loading ? 'Menyimpan...' : 'Simpan Produk'}
             </button>
         </div>
       </form>

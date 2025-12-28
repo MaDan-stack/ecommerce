@@ -4,7 +4,7 @@ import { formatPrice } from '../utils/formatters';
 import { Link } from 'react-router-dom';
 import ReviewModal from '../components/ui/ReviewModal';
 import PaymentModal from '../components/ui/PaymentModal';
-import { FaUpload, FaStar, FaClock, FaCheckCircle, FaPrint, FaBox } from 'react-icons/fa'; // Tambah FaPrint & FaBox
+import { FaUpload, FaStar, FaClock, FaCheckCircle, FaPrint, FaBox } from 'react-icons/fa';
 
 const OrderHistoryPage = () => {
   const [orders, setOrders] = useState([]);
@@ -46,7 +46,6 @@ const OrderHistoryPage = () => {
     fetchOrders();
   };
 
-  // Helper untuk Warna Badge
   const getStatusBadge = (status) => {
     const styles = {
       completed: 'bg-green-100 text-green-700 border border-green-200',
@@ -59,7 +58,6 @@ const OrderHistoryPage = () => {
     return styles[status] || styles.default;
   };
 
-  // Helper untuk Label Status
   const getStatusLabel = (status) => {
     if (status === 'awaiting_verification') return <><FaClock /> Menunggu Verifikasi</>;
     if (status === 'pending') return 'Belum Bayar';
@@ -99,7 +97,6 @@ const OrderHistoryPage = () => {
                     <p className="text-xs text-gray-400 mt-1">
                       {new Date(order.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
-                    {/* Tampilkan Resi jika ada */}
                     {order.trackingNumber && (
                         <p className="text-xs text-indigo-500 mt-1 font-bold">Resi: {order.trackingNumber}</p>
                     )}
@@ -112,27 +109,51 @@ const OrderHistoryPage = () => {
 
                 {/* Daftar Item */}
                 <div className="p-4">
-                  {order?.order_items?.map((item) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 border-b dark:border-gray-700 last:border-0 gap-4">
-                      <div>
-                        <Link to={`/products/${item.productId}`} className="font-medium text-gray-800 dark:text-white hover:text-orange-500 transition-colors">
-                          {item.productTitle}
-                        </Link>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Size: {item.variantSize} | Qty: {item.quantity} | {formatPrice(item.price)}
-                        </p>
-                      </div>
-                      
-                      {order.status === 'completed' && (
-                        <button 
-                          onClick={() => handleOpenReview(item, order.id)}
-                          className="text-xs border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-4 py-2 rounded-full transition-all duration-300 font-semibold flex items-center gap-1"
-                        >
-                          <FaStar /> Beri Ulasan
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                  {order?.order_items?.map((item) => {
+                      // LOGIKA GAMBAR (Handling String vs Array vs JSON String)
+                      let imgSource = item.productImg; // Field dari backend
+                      try {
+                          // Jika bentuknya string JSON '["url"]'
+                          if (typeof imgSource === 'string' && imgSource.startsWith('[')) {
+                              const parsed = JSON.parse(imgSource);
+                              imgSource = Array.isArray(parsed) ? parsed[0] : parsed;
+                          }
+                      } catch (e) {
+                          // Abaikan, pakai apa adanya
+                      }
+
+                      return (
+                        <div key={item.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 border-b dark:border-gray-700 last:border-0 gap-4">
+                          <div className="flex items-center gap-4">
+                             {/* TAMPILKAN GAMBAR DISINI */}
+                             <img 
+                                src={imgSource} 
+                                alt={item.productTitle} 
+                                className="w-16 h-16 object-cover rounded-lg border dark:border-gray-600"
+                                onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/150?text=No+Image'; }}
+                             />
+                             
+                             <div>
+                                <Link to={`/products/${item.productId}`} className="font-medium text-gray-800 dark:text-white hover:text-orange-500 transition-colors">
+                                  {item.productTitle}
+                                </Link>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  Size: {item.variantSize} | Qty: {item.quantity} | {formatPrice(item.price)}
+                                </p>
+                             </div>
+                          </div>
+                          
+                          {order.status === 'completed' && (
+                            <button 
+                              onClick={() => handleOpenReview(item, order.id)}
+                              className="text-xs border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-4 py-2 rounded-full transition-all duration-300 font-semibold flex items-center gap-1"
+                            >
+                              <FaStar /> Beri Ulasan
+                            </button>
+                          )}
+                        </div>
+                      );
+                  })}
                 </div>
 
                 {/* Footer Actions */}
@@ -142,10 +163,7 @@ const OrderHistoryPage = () => {
                         <p className="text-lg font-bold text-orange-500">{formatPrice(order.totalAmount)}</p>
                     </div>
 
-                    {/* Group Tombol Aksi */}
                     <div className="flex flex-wrap justify-center gap-3">
-                        
-                        {/* Tombol Cetak Struk (Selalu Muncul) */}
                         <Link 
                             to={`/invoice/${order.id}`} 
                             target="_blank" 
@@ -154,7 +172,6 @@ const OrderHistoryPage = () => {
                             <FaPrint /> Struk
                         </Link>
 
-                        {/* Tombol Upload (Hanya kalau Pending) */}
                         {order.status === 'pending' && (
                             <button 
                                 onClick={() => handleOpenPayment(order.id)}
@@ -164,7 +181,6 @@ const OrderHistoryPage = () => {
                             </button>
                         )}
                         
-                        {/* Info Status Lain */}
                         {order.status === 'awaiting_verification' && (
                             <span className="text-sm text-orange-600 bg-orange-100 px-3 py-2 rounded-lg border border-orange-200 flex items-center gap-2">
                                 <FaClock /> Sedang Diverifikasi

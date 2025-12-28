@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboardController');
-const verifyToken = require('../middleware/authMiddleware');
+// PERBAIKAN: Import verifyToken DAN adminOnly
+const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
 
 // GET /api/dashboard/stats
-router.get('/stats', verifyToken, dashboardController.getStats);
+// PERBAIKAN: Tambahkan adminOnly karena ini data rahasia toko
+router.get('/stats', verifyToken, adminOnly, dashboardController.getStats);
 
 module.exports = router;

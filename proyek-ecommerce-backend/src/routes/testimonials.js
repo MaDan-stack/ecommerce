@@ -1,15 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const testimonialController = require('../controllers/testimonialController');
-const verifyToken = require('../middleware/authMiddleware');
+// PERBAIKAN: Import verifyToken DAN adminOnly
+const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
 
-// Public: Semua orang bisa lihat
+// Public
 router.get('/', testimonialController.getAllTestimonials);
 
-// Private: User login bisa posting
+// Private: User posting
 router.post('/', verifyToken, testimonialController.createTestimonial);
 
-// Admin: Hapus Testimoni (BARU)
-router.delete('/:id', verifyToken, testimonialController.deleteTestimonial);
+// Admin: Hapus Testimoni (Wajib adminOnly)
+router.delete('/:id', verifyToken, adminOnly, testimonialController.deleteTestimonial);
 
 module.exports = router;

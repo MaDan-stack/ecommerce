@@ -59,7 +59,7 @@ const AdminOrderList = () => {
     // --- FITUR: Input Resi jika Shipped ---
     if (newStatus === 'shipped') {
         trackingNumber = globalThis.prompt("Masukkan Nomor Resi Pengiriman:");
-        if (!trackingNumber) return; 
+        if (!trackingNumber) return; // Batal jika kosong
     }
     // --------------------------------------
 
@@ -200,9 +200,7 @@ const AdminOrderList = () => {
             onClose={() => setIsModalOpen(false)}
             proofUrl={selectedOrder.paymentProof}
             isLoading={actionLoading}
-            // Tombol Terima: Ubah status jadi 'paid'
             onApprove={() => handleStatusUpdate(selectedOrder.id, 'paid')}
-            // Tombol Tolak: Kembalikan status jadi 'pending' agar user upload ulang
             onReject={() => handleStatusUpdate(selectedOrder.id, 'pending')}
         />
       )}

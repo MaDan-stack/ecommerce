@@ -1,20 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
-const verifyToken = require('../middleware/authMiddleware');
+// PERBAIKAN: Import verifyToken DAN adminOnly
+const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 
-// Semua rute order butuh Login (verifyToken)
-router.post('/', verifyToken, orderController.createOrder); // Checkout
-router.get('/my-orders', verifyToken, orderController.getMyOrders); // Riwayat User
-router.get('/', verifyToken, orderController.getAllOrders); // Admin Dashboard
-router.put('/:id/status', verifyToken, orderController.updateOrderStatus);
+// User Checkout (Cukup verifyToken)
+router.post('/', verifyToken, orderController.createOrder); 
+
+// User melihat orderannya sendiri (Cukup verifyToken)
+router.get('/my-orders', verifyToken, orderController.getMyOrders); 
+
+// Admin melihat SEMUA order (Wajib adminOnly)
+router.get('/', verifyToken, adminOnly, orderController.getAllOrders); 
+
+// Admin update status order (Wajib adminOnly)
+router.put('/:id/status', verifyToken, adminOnly, orderController.updateOrderStatus);
+
 // User Upload Bukti Bayar
-// POST /api/orders/:id/payment-proof
 router.post(
     '/:id/payment-proof', 
     verifyToken, 
-    upload.single('image'), // Gunakan field 'image'
+    upload.single('image'), 
     orderController.uploadPaymentProof
 );
 

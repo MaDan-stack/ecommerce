@@ -30,7 +30,7 @@ const AdminSubscriberList = () => {
     }
   };
 
-  // Fungsi Copy Email ke Clipboard (Untuk memudahkan admin meng-copy semua email)
+  // Fungsi Copy Email ke Clipboard
   const copyAllEmails = () => {
     const allEmails = subscribers.map(s => s.email).join(', ');
     navigator.clipboard.writeText(allEmails);

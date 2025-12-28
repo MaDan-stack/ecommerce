@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from "../contexts/AuthContext";
 import { formatPrice } from '../utils/formatters';
-// PERBAIKAN: Path "../utils/api" (satu titik dua) dan fungsi createOrder
 import { createOrder } from '../utils/api'; 
 import toast from 'react-hot-toast';
 
@@ -33,7 +32,6 @@ const CheckoutPage = () => {
 
     setLoading(true);
 
-    // 1. Siapkan data sesuai format Backend
     const orderData = {
       items: cartItems,
       totalAmount: total,
@@ -42,7 +40,6 @@ const CheckoutPage = () => {
       contactPhone: phone
     };
 
-    // 2. Kirim ke API
     const { error, data } = await createOrder(orderData);
 
     if (error) {
@@ -50,8 +47,6 @@ const CheckoutPage = () => {
     } else {
       toast.success("Pesanan berhasil dibuat!");
       clearCart();
-      
-      // Redirect ke halaman pembayaran
       if (data?.orderId) {
         navigate(`/payment/${data.orderId}`);
       } else {
@@ -62,7 +57,6 @@ const CheckoutPage = () => {
     setLoading(false);
   };
 
-  // Tampilan jika keranjang kosong
   if (cartItems.length === 0) {
     return (
       <div className="container py-20 text-center min-h-[60vh] flex flex-col justify-center items-center">
@@ -141,25 +135,37 @@ const CheckoutPage = () => {
             </h2>
             
             <ul className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-              {cartItems.map(item => (
-                <li key={item.id} className="flex justify-between items-start gap-4">
-                  <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <img src={item.product.img} alt={item.product.title} className="w-16 h-16 object-cover rounded-lg border dark:border-gray-600" />
-                        <span className="absolute -top-2 -right-2 bg-gray-900 dark:bg-gray-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                            {item.quantity}
-                        </span>
-                      </div>
-                      <div>
-                          <p className="font-medium text-gray-800 dark:text-gray-200 line-clamp-1 text-sm">{item.product.title}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Size: {item.variant.size}</p>
-                      </div>
-                  </div>
-                  <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm whitespace-nowrap">
-                      {formatPrice(item.variant.price * item.quantity)}
-                  </p>
-                </li>
-              ))}
+              {cartItems.map(item => {
+                // LOGIKA GAMBAR:
+                const imgSource = Array.isArray(item.product.img) 
+                    ? item.product.img[0] 
+                    : item.product.img;
+
+                return (
+                  <li key={item.id} className="flex justify-between items-start gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <img 
+                            src={imgSource} 
+                            alt={item.product.title} 
+                            className="w-16 h-16 object-cover rounded-lg border dark:border-gray-600" 
+                            onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/150?text=No+Image'; }}
+                          />
+                          <span className="absolute -top-2 -right-2 bg-gray-900 dark:bg-gray-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                              {item.quantity}
+                          </span>
+                        </div>
+                        <div>
+                            <p className="font-medium text-gray-800 dark:text-gray-200 line-clamp-1 text-sm">{item.product.title}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Size: {item.variant.size}</p>
+                        </div>
+                    </div>
+                    <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm whitespace-nowrap">
+                        {formatPrice(item.variant.price * item.quantity)}
+                    </p>
+                  </li>
+                );
+              })}
             </ul>
 
             <div className="border-t border-dashed border-gray-300 dark:border-gray-600 pt-4 space-y-3">
